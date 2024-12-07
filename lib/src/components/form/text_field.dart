@@ -81,7 +81,7 @@ class TextField extends StatefulWidget {
     this.onTapOutside,
     this.inputFormatters,
     this.style,
-    this.contextMenuBuilder = _defaultContextMenuBuilder,
+    this.contextMenuBuilder, //= _defaultContextMenuBuilder,
     this.useNativeContextMenu = false,
     this.isCollapsed,
     this.textInputAction,
@@ -93,10 +93,10 @@ class TextField extends StatefulWidget {
     this.statesController,
   });
 
-  static Widget _defaultContextMenuBuilder(
+/*   static Widget _defaultContextMenuBuilder(
       BuildContext context, EditableTextState editableTextState) {
     return buildEditableTextContextMenu(context, editableTextState);
-  }
+  } */
 
   @override
   State<TextField> createState() => _TextFieldState();
@@ -189,11 +189,7 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
           )
           .merge(widget.style);
     } else {
-      defaultTextStyle = DefaultTextStyle.of(context)
-          .style
-          .merge(theme.typography.small)
-          .merge(theme.typography.normal)
-          .copyWith(
+      defaultTextStyle = DefaultTextStyle.of(context).style.merge(theme.typography.small).merge(theme.typography.normal).copyWith(
             color: theme.colorScheme.foreground,
           );
     }
@@ -203,26 +199,18 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
       listenable: _statesController,
       builder: (context, child) {
         return MouseRegion(
-          cursor: widget.enabled
-              ? SystemMouseCursors.text
-              : SystemMouseCursors.basic,
+          cursor: widget.enabled ? SystemMouseCursors.text : SystemMouseCursors.basic,
           child: GestureDetector(
             onTap: widget.enabled ? () => _focusNode.requestFocus() : null,
             child: TextFieldTapRegion(
               enabled: widget.enabled,
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: optionallyResolveBorderRadius(
-                          context, widget.borderRadius) ??
-                      BorderRadius.circular(theme.radiusMd),
+                  borderRadius: optionallyResolveBorderRadius(context, widget.borderRadius) ?? BorderRadius.circular(theme.radiusMd),
                   color: widget.filled ? theme.colorScheme.muted : null,
                   border: widget.border
                       ? Border.all(
-                          color: _statesController.value
-                                      .contains(WidgetState.focused) &&
-                                  widget.enabled
-                              ? theme.colorScheme.ring
-                              : theme.colorScheme.border,
+                          color: _statesController.value.contains(WidgetState.focused) && widget.enabled ? theme.colorScheme.ring : theme.colorScheme.border,
                         )
                       : null,
                 ),
@@ -241,10 +229,7 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
         data: _statesController,
         child: Row(
           children: [
-            if (widget.leading != null)
-              Align(
-                  alignment: widget.leadingAlignment ?? Alignment.center,
-                  child: widget.leading!),
+            if (widget.leading != null) Align(alignment: widget.leadingAlignment ?? Alignment.center, child: widget.leading!),
             if (widget.leading != null) SizedBox(width: 8 * scaling),
             Flexible(
               child: Stack(
@@ -256,8 +241,7 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
                         ? null
                         : widget.useNativeContextMenu && !kIsWeb
                             ? (context, editableTextState) {
-                                return material.AdaptiveTextSelectionToolbar
-                                    .editableText(
+                                return material.AdaptiveTextSelectionToolbar.editableText(
                                   editableTextState: editableTextState,
                                 );
                               }
@@ -285,10 +269,7 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
                     textInputAction: widget.textInputAction,
                     autofillHints: widget.autofillHints,
                     minLines: widget.minLines,
-                    buildCounter: (context,
-                        {required currentLength,
-                        required isFocused,
-                        required maxLength}) {
+                    buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
                       return null;
                     },
                     controller: _controller,
@@ -323,17 +304,11 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
                             child: Visibility(
                               visible: _controller.text.isEmpty,
                               child: Container(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 1),
-                                alignment: widget.placeholderAlignment ??
-                                    Alignment.centerLeft,
+                                padding: const EdgeInsets.symmetric(vertical: 1),
+                                alignment: widget.placeholderAlignment ?? Alignment.centerLeft,
                                 child: DefaultTextStyle(
-                                  style: defaultTextStyle
-                                      .merge(theme.typography.normal)
-                                      .merge(theme.typography.small)
-                                      .copyWith(
-                                        color:
-                                            theme.colorScheme.mutedForeground,
+                                  style: defaultTextStyle.merge(theme.typography.normal).merge(theme.typography.small).copyWith(
+                                        color: theme.colorScheme.mutedForeground,
                                       ),
                                   child: widget.placeholder!,
                                 ),
@@ -347,10 +322,7 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
               ),
             ),
             if (widget.trailing != null) SizedBox(width: 8 * scaling),
-            if (widget.trailing != null)
-              Align(
-                  alignment: widget.trailingAlignment ?? Alignment.center,
-                  child: widget.trailing!),
+            if (widget.trailing != null) Align(alignment: widget.trailingAlignment ?? Alignment.center, child: widget.trailing!),
           ],
         ),
       ),
