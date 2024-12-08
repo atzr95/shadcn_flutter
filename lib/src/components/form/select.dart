@@ -352,11 +352,12 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Report initial value to form system
     reportNewFormValue(
       widget.value,
       (value) {
         if (widget.onChanged != null) {
-          widget.onChanged!(value);
+          widget.onChanged!(value as T?);
         }
       },
     );
@@ -369,23 +370,20 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
       _focusNode = widget.focusNode ?? FocusNode();
     }
     if (widget.value != oldWidget.value) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _valueNotifier.value =
-            widget.value == null ? const [] : [widget.value as T];
-      });
+      _valueNotifier.value =
+          widget.value == null ? const [] : [widget.value as T];
+      // Report value changes when widget updates
       reportNewFormValue(
         widget.value,
         (value) {
           if (widget.onChanged != null) {
-            widget.onChanged!(value);
+            widget.onChanged!(value as T?);
           }
         },
       );
     }
     if (!listEquals(widget.children, oldWidget.children)) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _childrenNotifier.value = widget.children;
-      });
+      _childrenNotifier.value = widget.children;
     }
   }
 
@@ -462,9 +460,27 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                             : (value, selected) {
                                 if (selected && widget.value != value) {
                                   widget.onChanged!(value);
+                                  // Report value changes when selection changes
+                                  reportNewFormValue(
+                                    value,
+                                    (newValue) {
+                                      if (widget.onChanged != null) {
+                                        widget.onChanged!(newValue as T?);
+                                      }
+                                    },
+                                  );
                                 } else if (widget.canUnselect &&
                                     widget.value == value) {
                                   widget.onChanged!(null);
+                                  // Report null value when unselecting
+                                  reportNewFormValue(
+                                    null,
+                                    (newValue) {
+                                      if (widget.onChanged != null) {
+                                        widget.onChanged!(newValue as T?);
+                                      }
+                                    },
+                                  );
                                 }
                               },
                         emptyBuilder: widget.emptyBuilder,
@@ -480,11 +496,11 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                     },
                   );
                 },
-          child: IntrinsicWidth(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
                   child: widget.value != null
                       ? widget.itemBuilder(
                           context,
@@ -492,16 +508,18 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                         )
                       : placeholder,
                 ),
-                SizedBox(width: 8 * scaling),
-                IconTheme.merge(
+              ),
+              Padding(
+                padding: EdgeInsets.only(left: 8 * scaling),
+                child: IconTheme.merge(
                   data: IconThemeData(
                     color: theme.colorScheme.foreground,
                     opacity: 0.5,
                   ),
                   child: const Icon(Icons.unfold_more).iconSmall(),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -957,7 +975,7 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
       widget.value,
       (value) {
         if (widget.onChanged != null) {
-          widget.onChanged!(value);
+          widget.onChanged!(value as List<T>);
         }
       },
     );
@@ -970,14 +988,11 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
       _focusNode = widget.focusNode ?? FocusNode();
     }
     if (!listEquals(widget.value, oldWidget.value)) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _valueNotifier.value = widget.value;
-      });
       reportNewFormValue(
         widget.value,
         (value) {
           if (widget.onChanged != null) {
-            widget.onChanged!(value);
+            widget.onChanged!(value as List<T>);
           }
         },
       );
@@ -1083,11 +1098,11 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                     },
                   );
                 },
-          child: IntrinsicWidth(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
                   child: widget.value.isNotEmpty
                       ? Wrap(
                           spacing: 4 * scaling,
@@ -1121,16 +1136,18 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                         )
                       : placeholder,
                 ),
-                SizedBox(width: 8 * scaling),
-                IconTheme(
+              ),
+              Padding(
+                padding: EdgeInsets.only(left: 8 * scaling),
+                child: IconTheme(
                   data: IconThemeData(
                     color: theme.colorScheme.foreground,
                     opacity: 0.5,
                   ),
                   child: const Icon(Icons.unfold_more).iconSmall(),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

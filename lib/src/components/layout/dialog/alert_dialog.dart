@@ -10,6 +10,7 @@ class AlertDialog extends StatefulWidget {
   final double? surfaceOpacity;
   final Color? barrierColor;
   final EdgeInsetsGeometry? padding;
+  final bool isFullscreen;
 
   const AlertDialog({
     super.key,
@@ -22,7 +23,20 @@ class AlertDialog extends StatefulWidget {
     this.surfaceOpacity,
     this.barrierColor,
     this.padding,
-  });
+  }) : isFullscreen = false;
+
+  const AlertDialog.fullscreen({
+    super.key,
+    this.leading,
+    this.title,
+    this.content,
+    this.actions,
+    this.trailing,
+    this.surfaceBlur,
+    this.surfaceOpacity,
+    this.barrierColor,
+    this.padding,
+  }) : isFullscreen = true;
 
   @override
   _AlertDialogState createState() => _AlertDialogState();
@@ -34,20 +48,25 @@ class _AlertDialogState extends State<AlertDialog> {
     var themeData = Theme.of(context);
     var scaling = themeData.scaling;
     return ModalContainer(
-      borderRadius: themeData.borderRadiusXxl,
+      borderRadius:
+          widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
       barrierColor: widget.barrierColor ?? Colors.black.withOpacity(0.8),
       surfaceClip: ModalContainer.shouldClipSurface(
           widget.surfaceOpacity ?? themeData.surfaceOpacity),
       child: OutlinedContainer(
         backgroundColor: themeData.colorScheme.popover,
-        borderRadius: themeData.borderRadiusXxl,
-        borderWidth: 1 * scaling,
+        borderRadius:
+            widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
+        borderWidth: widget.isFullscreen ? 0 : 1 * scaling,
         borderColor: themeData.colorScheme.muted,
-        padding: widget.padding ?? EdgeInsets.all(24 * scaling),
+        padding: widget.isFullscreen
+            ? EdgeInsets.zero
+            : widget.padding ?? EdgeInsets.all(24 * scaling),
         surfaceBlur: widget.surfaceBlur ?? themeData.surfaceBlur,
         surfaceOpacity: widget.surfaceOpacity ?? themeData.surfaceOpacity,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize:
+              widget.isFullscreen ? MainAxisSize.max : MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Flexible(
@@ -60,13 +79,17 @@ class _AlertDialogState extends State<AlertDialog> {
                   if (widget.title != null || widget.content != null)
                     Flexible(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisSize: widget.isFullscreen
+                            ? MainAxisSize.max
+                            : MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (widget.title != null)
                             widget.title!.large().semiBold(),
                           if (widget.content != null)
-                            widget.content!.small().muted(),
+                            Flexible(
+                              child: widget.content!.small().muted(),
+                            ),
                         ],
                       ).gap(8 * scaling),
                     ),
@@ -76,12 +99,21 @@ class _AlertDialogState extends State<AlertDialog> {
               ).gap(16 * scaling),
             ),
             if (widget.actions != null && widget.actions!.isNotEmpty)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                // children: widget.actions!,
-                children: join(widget.actions!, SizedBox(width: 8 * scaling))
-                    .toList(),
+              Padding(
+                padding: widget.isFullscreen
+                    ? EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom +
+                            16 * scaling,
+                        right: 16 * scaling,
+                        left: 16 * scaling,
+                      )
+                    : EdgeInsets.zero,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: join(widget.actions!, SizedBox(width: 8 * scaling))
+                      .toList(),
+                ),
               ),
           ],
         ).gap(16 * scaling),
