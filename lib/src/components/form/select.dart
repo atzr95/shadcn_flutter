@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/src/components/control/hover.dart';
@@ -339,6 +340,7 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
   final PopoverController _popoverController = PopoverController();
   late ValueNotifier<List<T>> _valueNotifier;
   late ValueNotifier<List<AbstractSelectItem<T>>> _childrenNotifier;
+  bool _isOpening = false;
 
   @override
   void initState() {
@@ -352,15 +354,16 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Report initial value to form system
-    reportNewFormValue(
-      widget.value,
-      (value) {
-        if (widget.onChanged != null) {
-          widget.onChanged!(value as T?);
-        }
-      },
-    );
+    if (!_isOpening) {
+      reportNewFormValue(
+        widget.value,
+        (value) {
+          if (widget.onChanged != null) {
+            widget.onChanged!(value as T?);
+          }
+        },
+      );
+    }
   }
 
   @override
@@ -369,10 +372,11 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
     if (widget.focusNode != oldWidget.focusNode) {
       _focusNode = widget.focusNode ?? FocusNode();
     }
-    if (widget.value != oldWidget.value) {
-      _valueNotifier.value =
-          widget.value == null ? const [] : [widget.value as T];
-      // Report value changes when widget updates
+    if (widget.value != oldWidget.value && !_isOpening) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        _valueNotifier.value =
+            widget.value == null ? const [] : [widget.value as T];
+      });
       reportNewFormValue(
         widget.value,
         (value) {
@@ -383,7 +387,9 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
       );
     }
     if (!listEquals(widget.children, oldWidget.children)) {
-      _childrenNotifier.value = widget.children;
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        _childrenNotifier.value = widget.children;
+      });
     }
   }
 
@@ -431,6 +437,11 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
           onPressed: widget.onChanged == null
               ? null
               : () {
+                  _isOpening = true;
+                  final popupValueNotifier = ValueNotifier<List<T>>(
+                      widget.value == null ? const [] : [widget.value as T]);
+                  final popupClosed = Completer<void>();
+
                   _popoverController
                       .show(
                     context: context,
@@ -443,50 +454,53 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                       borderRadius: BorderRadius.circular(theme.radiusLg),
                     ),
                     builder: (context) {
-                      return SelectPopup<T>(
-                        borderRadius: BorderRadius.circular(theme.radiusLg),
-                        margin:
-                            const EdgeInsets.symmetric(vertical: 8) * scaling,
-                        onSearch: widget.onSearch,
-                        autoClose: widget.autoClosePopover,
-                        orderSelectedFirst: widget.orderSelectedFirst,
-                        searchPlaceholder: widget.searchPlaceholder,
-                        searchFilter: widget.searchFilter,
-                        constraints: widget.popupConstraints,
-                        value: _valueNotifier,
-                        showUnrelatedValues: widget.showUnrelatedValues,
-                        onChanged: widget.onChanged == null
-                            ? null
-                            : (value, selected) {
-                                if (selected && widget.value != value) {
-                                  widget.onChanged!(value);
-                                  // Report value changes when selection changes
-                                  reportNewFormValue(
-                                    value,
-                                    (newValue) {
-                                      if (widget.onChanged != null) {
-                                        widget.onChanged!(newValue as T?);
-                                      }
-                                    },
-                                  );
-                                } else if (widget.canUnselect &&
-                                    widget.value == value) {
-                                  widget.onChanged!(null);
-                                  // Report null value when unselecting
-                                  reportNewFormValue(
-                                    null,
-                                    (newValue) {
-                                      if (widget.onChanged != null) {
-                                        widget.onChanged!(newValue as T?);
-                                      }
-                                    },
-                                  );
-                                }
-                              },
-                        emptyBuilder: widget.emptyBuilder,
-                        surfaceBlur: widget.surfaceBlur,
-                        surfaceOpacity: widget.surfaceOpacity,
-                        children: _childrenNotifier,
+                      return PopoverLifecycle(
+                        onDispose: () {
+                          popupClosed.complete();
+                        },
+                        child: SelectPopup<T>(
+                          value: popupValueNotifier,
+                          borderRadius: BorderRadius.circular(theme.radiusLg),
+                          margin:
+                              const EdgeInsets.symmetric(vertical: 8) * scaling,
+                          orderSelectedFirst: widget.orderSelectedFirst,
+                          searchPlaceholder: widget.searchPlaceholder,
+                          onSearch: widget.onSearch,
+                          searchFilter: widget.searchFilter,
+                          constraints: widget.popupConstraints,
+                          showUnrelatedValues: widget.showUnrelatedValues,
+                          autoClose: widget.autoClosePopover,
+                          onChanged: widget.onChanged == null
+                              ? null
+                              : (value, selected) {
+                                  if (selected && widget.value != value) {
+                                    widget.onChanged!(value);
+                                    reportNewFormValue(
+                                      value,
+                                      (value) {
+                                        if (widget.onChanged != null) {
+                                          widget.onChanged!(value as T);
+                                        }
+                                      },
+                                    );
+                                  } else if (widget.canUnselect &&
+                                      widget.value == value) {
+                                    widget.onChanged!(null);
+                                    reportNewFormValue(
+                                      null,
+                                      (value) {
+                                        if (widget.onChanged != null) {
+                                          widget.onChanged!(value as T?);
+                                        }
+                                      },
+                                    );
+                                  }
+                                },
+                          emptyBuilder: widget.emptyBuilder,
+                          surfaceBlur: widget.surfaceBlur,
+                          surfaceOpacity: widget.surfaceOpacity,
+                          children: _childrenNotifier,
+                        ),
                       );
                     },
                   )
@@ -495,6 +509,11 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                       _focusNode.requestFocus();
                     },
                   );
+
+                  popupClosed.future.then((_) {
+                    _isOpening = false;
+                    popupValueNotifier.dispose();
+                  });
                 },
           child: Row(
             children: [
@@ -572,16 +591,17 @@ class SelectPopup<T> extends StatefulWidget {
 class SelectPopupState<T> extends State<SelectPopup<T>> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isHandlingChange = false;
 
   @override
   void initState() {
     super.initState();
     // this is required due to late scroll controller attachment
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+/*     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       if (mounted) {
         setState(() {});
       }
-    });
+    }); */
   }
 
   @override
@@ -589,6 +609,13 @@ class SelectPopupState<T> extends State<SelectPopup<T>> {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _handleValueChange(T value, bool selected) {
+    if (_isHandlingChange) return;
+    _isHandlingChange = true;
+    widget.onChanged?.call(value, selected);
+    _isHandlingChange = false;
   }
 
   @override
@@ -826,7 +853,7 @@ class SelectPopupState<T> extends State<SelectPopup<T>> {
                             },
                             text,
                             (value, selected) {
-                              widget.onChanged?.call(value, selected);
+                              _handleValueChange(value, selected);
                               if (widget.autoClose) {
                                 closeOverlay(context, value);
                               }
@@ -959,6 +986,21 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
   final PopoverController _popoverController = PopoverController();
   late ValueNotifier<List<T>> _valueNotifier;
   late ValueNotifier<List<AbstractSelectItem<T>>> _childrenNotifier;
+  bool _isOpening = false;
+
+  void _handleValueChange(List<T> value) {
+    if (widget.onChanged != null) {
+      widget.onChanged!(value);
+    }
+    reportNewFormValue(
+      value,
+      (value) {
+        if (widget.onChanged != null) {
+          widget.onChanged!(value);
+        }
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -971,14 +1013,16 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    reportNewFormValue(
-      widget.value,
-      (value) {
-        if (widget.onChanged != null) {
-          widget.onChanged!(value as List<T>);
-        }
-      },
-    );
+    if (!_isOpening) {
+      reportNewFormValue(
+        widget.value,
+        (value) {
+          if (widget.onChanged != null) {
+            widget.onChanged!(value as List<T>);
+          }
+        },
+      );
+    }
   }
 
   @override
@@ -987,7 +1031,10 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
     if (widget.focusNode != oldWidget.focusNode) {
       _focusNode = widget.focusNode ?? FocusNode();
     }
-    if (!listEquals(widget.value, oldWidget.value)) {
+    if (!listEquals(widget.value, oldWidget.value) && !_isOpening) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        _valueNotifier.value = widget.value;
+      });
       reportNewFormValue(
         widget.value,
         (value) {
@@ -1048,6 +1095,11 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
           onPressed: widget.onChanged == null
               ? null
               : () {
+                  _isOpening = true;
+                  final popupValueNotifier =
+                      ValueNotifier<List<T>>(widget.value);
+                  final popupClosed = Completer<void>();
+
                   _popoverController
                       .show(
                     context: context,
@@ -1060,22 +1112,25 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                       borderRadius: BorderRadius.circular(theme.radiusLg),
                     ),
                     builder: (context) {
-                      return SelectPopup<T>(
-                        borderRadius: BorderRadius.circular(theme.radiusLg),
-                        margin:
-                            const EdgeInsets.symmetric(vertical: 8) * scaling,
-                        orderSelectedFirst: widget.orderSelectedFirst,
-                        searchPlaceholder: widget.searchPlaceholder,
-                        onSearch: widget.onSearch,
-                        searchFilter: widget.searchFilter,
-                        constraints: widget.popupConstraints,
-                        value: _valueNotifier,
-                        showUnrelatedValues: widget.showUnrelatedValues,
-                        autoClose: widget.autoClosePopover,
-                        onChanged: widget.onChanged == null
-                            ? null
-                            : (value, selected) {
-                                if (value != null) {
+                      return PopoverLifecycle(
+                        onDispose: () {
+                          popupClosed.complete();
+                        },
+                        child: SelectPopup<T>(
+                          value: popupValueNotifier,
+                          borderRadius: BorderRadius.circular(theme.radiusLg),
+                          margin:
+                              const EdgeInsets.symmetric(vertical: 8) * scaling,
+                          orderSelectedFirst: widget.orderSelectedFirst,
+                          searchPlaceholder: widget.searchPlaceholder,
+                          onSearch: widget.onSearch,
+                          searchFilter: widget.searchFilter,
+                          constraints: widget.popupConstraints,
+                          showUnrelatedValues: widget.showUnrelatedValues,
+                          autoClose: widget.autoClosePopover,
+                          onChanged: widget.onChanged == null
+                              ? null
+                              : (value, selected) {
                                   List<T> newValue = List.from(widget.value);
                                   if (selected) {
                                     newValue.add(value);
@@ -1083,12 +1138,12 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                                     newValue.remove(value);
                                   }
                                   widget.onChanged!(newValue);
-                                }
-                              },
-                        emptyBuilder: widget.emptyBuilder,
-                        surfaceBlur: widget.surfaceBlur,
-                        surfaceOpacity: widget.surfaceOpacity,
-                        children: _childrenNotifier,
+                                },
+                          emptyBuilder: widget.emptyBuilder,
+                          surfaceBlur: widget.surfaceBlur,
+                          surfaceOpacity: widget.surfaceOpacity,
+                          children: _childrenNotifier,
+                        ),
                       );
                     },
                   )
@@ -1097,12 +1152,17 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                       _focusNode.requestFocus();
                     },
                   );
+
+                  popupClosed.future.then((_) {
+                    _isOpening = false;
+                    popupValueNotifier.dispose();
+                  });
                 },
-          child: Row(
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
+          child: IntrinsicWidth(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(
                   child: widget.value.isNotEmpty
                       ? Wrap(
                           spacing: 4 * scaling,
@@ -1136,21 +1196,46 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                         )
                       : placeholder,
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.only(left: 8 * scaling),
-                child: IconTheme(
+                SizedBox(width: 8 * scaling),
+                IconTheme(
                   data: IconThemeData(
                     color: theme.colorScheme.foreground,
                     opacity: 0.5,
                   ),
                   child: const Icon(Icons.unfold_more).iconSmall(),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+class PopoverLifecycle extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onDispose;
+
+  const PopoverLifecycle({
+    super.key,
+    required this.child,
+    required this.onDispose,
+  });
+
+  @override
+  State<PopoverLifecycle> createState() => _PopoverLifecycleState();
+}
+
+class _PopoverLifecycleState extends State<PopoverLifecycle> {
+  @override
+  void dispose() {
+    widget.onDispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
