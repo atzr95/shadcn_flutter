@@ -8,6 +8,7 @@ class CircularProgressIndicator extends StatelessWidget {
   final Duration duration;
   final bool animated;
   final bool onSurface;
+  final double? strokeWidth;
 
   const CircularProgressIndicator({
     super.key,
@@ -16,6 +17,7 @@ class CircularProgressIndicator extends StatelessWidget {
     this.duration = kDefaultDuration,
     this.animated = true,
     this.onSurface = false,
+    this.strokeWidth,
   });
 
   @override
@@ -37,7 +39,7 @@ class CircularProgressIndicator extends StatelessWidget {
             ),
             color: color,
             backgroundColor: color.scaleAlpha(0.2),
-            strokeWidth:
+            strokeWidth: strokeWidth ??
                 (size ?? (iconThemeData.size ?? (theme.scaling * 24))) / 12,
             value: value,
           ),
@@ -62,7 +64,7 @@ class CircularProgressIndicator extends StatelessWidget {
                 ),
                 color: color,
                 backgroundColor: color.scaleAlpha(0.2),
-                strokeWidth:
+                strokeWidth: strokeWidth ??
                     (size ?? (iconThemeData.size ?? (theme.scaling * 24))) / 12,
                 value: value,
               ),
