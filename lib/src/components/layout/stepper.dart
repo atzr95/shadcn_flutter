@@ -916,11 +916,13 @@ class StepTitle extends StatelessWidget {
 class StepContainer extends StatefulWidget {
   final Widget child;
   final List<Widget> actions;
+  final MainAxisAlignment actionsAlignment;
 
   const StepContainer({
     super.key,
     required this.child,
     required this.actions,
+    this.actionsAlignment = MainAxisAlignment.start,
   });
 
   @override
@@ -943,6 +945,7 @@ class _StepContainerState extends State<StepContainer> {
         widget.child,
         Gap(16 * scaling),
         Row(
+          mainAxisAlignment: widget.actionsAlignment,
           children: widget.actions,
         ).gap(8 * scaling),
       ],
