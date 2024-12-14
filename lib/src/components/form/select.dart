@@ -406,6 +406,18 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
     super.dispose();
   }
 
+  BoxDecoration _overrideBorderRadius(
+      BuildContext context, Set<WidgetState> states, Decoration value) {
+    return (value as BoxDecoration).copyWith(
+      borderRadius: widget.borderRadius,
+    );
+  }
+
+  EdgeInsetsGeometry _overridePadding(
+      BuildContext context, Set<WidgetState> states, EdgeInsetsGeometry value) {
+    return widget.padding!;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -423,16 +435,9 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                   ? ButtonVariance.secondary
                   : ButtonVariance.outline)
               .copyWith(
-            decoration: widget.borderRadius != null
-                ? (context, states, decoration) {
-                    return (decoration as BoxDecoration).copyWith(
-                      borderRadius: widget.borderRadius,
-                    );
-                  }
-                : null,
-            padding: widget.padding != null
-                ? (context, states, value) => widget.padding!
-                : null,
+            decoration:
+                widget.borderRadius != null ? _overrideBorderRadius : null,
+            padding: widget.padding != null ? _overridePadding : null,
           ),
           onPressed: widget.onChanged == null
               ? null
