@@ -13,6 +13,7 @@ OverlayCompleter<T?> showDropdown<T>({
   Clip clipBehavior = Clip.none,
   Object? regionGroupId,
   Offset? offset,
+  AlignmentGeometry? alignment,
   AlignmentGeometry? transitionAlignment,
   EdgeInsetsGeometry? margin,
   bool follow = true,
@@ -30,7 +31,7 @@ OverlayCompleter<T?> showDropdown<T>({
   final overlayManager = OverlayManager.of(context);
   return overlayManager.showMenu<T>(
     context: context,
-    alignment: Alignment.topCenter,
+    alignment: alignment ?? Alignment.topCenter,
     offset: offset ?? (const Offset(0, 4) * scaling),
     follow: follow,
     clipBehavior: clipBehavior,
