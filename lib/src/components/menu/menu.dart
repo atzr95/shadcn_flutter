@@ -184,6 +184,7 @@ class MenuButton extends StatefulWidget implements MenuItem {
   final bool enabled;
   final FocusNode? focusNode;
   final bool autoClose;
+  final double? subMenuWidth;
   @override
   final PopoverController? popoverController;
   const MenuButton({
@@ -197,6 +198,7 @@ class MenuButton extends StatefulWidget implements MenuItem {
     this.focusNode,
     this.autoClose = true,
     this.popoverController,
+    this.subMenuWidth,
   });
 
   @override
@@ -368,10 +370,11 @@ class _MenuButtonState extends State<MenuButton> {
             itemPadding = const EdgeInsets.symmetric(horizontal: 8) * scaling;
           }
           return ConstrainedBox(
-            constraints: const BoxConstraints(
-                  minWidth: 192, // 12rem
-                ) *
-                scaling,
+            constraints: BoxConstraints(
+              minWidth: widget.subMenuWidth ??
+                  (192 *
+                      scaling), // Use custom width if provided, otherwise default to 192
+            ),
             child: AnimatedBuilder(
                 animation: _children,
                 builder: (context, child) {
