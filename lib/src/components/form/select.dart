@@ -1143,6 +1143,7 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                                     newValue.remove(value);
                                   }
                                   widget.onChanged!(newValue);
+                                  popupValueNotifier.value = newValue;
                                 },
                           emptyBuilder: widget.emptyBuilder,
                           surfaceBlur: widget.surfaceBlur,
@@ -1163,54 +1164,51 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                     popupValueNotifier.dispose();
                   });
                 },
-          child: IntrinsicWidth(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
-                  child: widget.value.isNotEmpty
-                      ? Wrap(
-                          spacing: 4 * scaling,
-                          runSpacing: 4 * scaling,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            for (var value in widget.value)
-                              Chip(
-                                style: const ButtonStyle.primary(),
-                                trailing: ChipButton(
-                                  onPressed: widget.onChanged == null
-                                      ? null
-                                      : () {
-                                          if (widget.onChanged != null) {
-                                            List<T> newValue =
-                                                List.from(widget.value);
-                                            newValue.remove(value);
-                                            widget.onChanged!(newValue);
-                                          }
-                                        },
-                                  child: const Icon(
-                                    Icons.close,
-                                  ).iconSmall(),
-                                ),
-                                child: widget.itemBuilder(
-                                  context,
-                                  value,
-                                ),
+          child: Row(
+            children: [
+              Expanded(
+                child: widget.value.isNotEmpty
+                    ? Wrap(
+                        spacing: 4 * scaling,
+                        runSpacing: 4 * scaling,
+                        crossAxisAlignment: WrapCrossAlignment.start,
+                        children: [
+                          for (var value in widget.value)
+                            Chip(
+                              style: const ButtonStyle.primary(),
+                              trailing: ChipButton(
+                                onPressed: widget.onChanged == null
+                                    ? null
+                                    : () {
+                                        if (widget.onChanged != null) {
+                                          List<T> newValue =
+                                              List.from(widget.value);
+                                          newValue.remove(value);
+                                          widget.onChanged!(newValue);
+                                        }
+                                      },
+                                child: const Icon(
+                                  Icons.close,
+                                ).iconSmall(),
                               ),
-                          ],
-                        )
-                      : placeholder,
+                              child: widget.itemBuilder(
+                                context,
+                                value,
+                              ),
+                            ),
+                        ],
+                      )
+                    : placeholder,
+              ),
+              SizedBox(width: 8 * scaling),
+              IconTheme(
+                data: IconThemeData(
+                  color: theme.colorScheme.foreground,
+                  opacity: 0.5,
                 ),
-                SizedBox(width: 8 * scaling),
-                IconTheme(
-                  data: IconThemeData(
-                    color: theme.colorScheme.foreground,
-                    opacity: 0.5,
-                  ),
-                  child: const Icon(Icons.unfold_more).iconSmall(),
-                ),
-              ],
-            ),
+                child: const Icon(Icons.unfold_more).iconSmall(),
+              ),
+            ],
           ),
         ),
       ),

@@ -48,7 +48,7 @@ class _CheckboxState extends State<Checkbox> with FormValueSupplier {
           _changeTo(CheckboxState.unchecked);
           break;
         case CheckboxState.unchecked:
-          _changeTo(CheckboxState.indeterminate);
+          _changeTo(CheckboxState.checked);
           break;
         case CheckboxState.indeterminate:
           _changeTo(CheckboxState.checked);
