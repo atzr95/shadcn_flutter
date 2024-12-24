@@ -953,6 +953,8 @@ class MultiSelect<T> extends StatefulWidget {
   final bool disableHoverEffect;
   final bool autoClosePopover;
   final SelectSearch? onSearch;
+  final Widget?
+      allSelectedText; // New parameter for showing text when all items are selected
 
   const MultiSelect({
     super.key,
@@ -978,6 +980,7 @@ class MultiSelect<T> extends StatefulWidget {
     this.surfaceOpacity,
     this.autoClosePopover = false,
     this.onSearch,
+    this.allSelectedText,
     required this.itemBuilder,
     required this.children,
   });
@@ -1073,6 +1076,21 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scaling = theme.scaling;
+
+    // Calculate total selectable items
+    int totalSelectableItems = 0;
+    for (var child in widget.children) {
+      if (child is SelectGroup<T>) {
+        totalSelectableItems += child.children.length;
+      } else if (child is SelectItemButton<T>) {
+        totalSelectableItems += 1;
+      }
+    }
+
+    // Check if all items are selected
+    bool allSelected =
+        widget.value.length == totalSelectableItems && totalSelectableItems > 0;
+
     return ConstrainedBox(
       constraints: widget.constraints ?? const BoxConstraints(),
       child: TapRegion(
@@ -1168,36 +1186,56 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
             children: [
               Expanded(
                 child: widget.value.isNotEmpty
-                    ? Wrap(
-                        spacing: 4 * scaling,
-                        runSpacing: 4 * scaling,
-                        crossAxisAlignment: WrapCrossAlignment.start,
-                        children: [
-                          for (var value in widget.value)
-                            Chip(
+                    ? allSelected && widget.allSelectedText != null
+                        ? Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Chip(
                               style: const ButtonStyle.primary(),
                               trailing: ChipButton(
                                 onPressed: widget.onChanged == null
                                     ? null
                                     : () {
                                         if (widget.onChanged != null) {
-                                          List<T> newValue =
-                                              List.from(widget.value);
-                                          newValue.remove(value);
-                                          widget.onChanged!(newValue);
+                                          widget.onChanged!([]);
                                         }
                                       },
                                 child: const Icon(
                                   Icons.close,
                                 ).iconSmall(),
                               ),
-                              child: widget.itemBuilder(
-                                context,
-                                value,
-                              ),
+                              child: widget.allSelectedText!,
                             ),
-                        ],
-                      )
+                          )
+                        : Wrap(
+                            spacing: 4 * scaling,
+                            runSpacing: 4 * scaling,
+                            crossAxisAlignment: WrapCrossAlignment.start,
+                            children: [
+                              for (var value in widget.value)
+                                Chip(
+                                  style: const ButtonStyle.primary(),
+                                  trailing: ChipButton(
+                                    onPressed: widget.onChanged == null
+                                        ? null
+                                        : () {
+                                            if (widget.onChanged != null) {
+                                              List<T> newValue =
+                                                  List.from(widget.value);
+                                              newValue.remove(value);
+                                              widget.onChanged!(newValue);
+                                            }
+                                          },
+                                    child: const Icon(
+                                      Icons.close,
+                                    ).iconSmall(),
+                                  ),
+                                  child: widget.itemBuilder(
+                                    context,
+                                    value,
+                                  ),
+                                ),
+                            ],
+                          )
                     : placeholder,
               ),
               SizedBox(width: 8 * scaling),
