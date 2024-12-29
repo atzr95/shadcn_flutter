@@ -1,13 +1,13 @@
 name: shadcn_flutter
 description: "Beautifully designed components from Shadcn/UI is now available for Flutter"
-version: 0.0.23
+version: 0.0.22
 homepage: "https://github.com/sunarya-thito/shadcn_flutter"
 documentation: "https://sunarya-thito.github.io/shadcn_flutter/"
 repository: "https://github.com/sunarya-thito/shadcn_flutter"
 issue_tracker: "https://github.com/sunarya-thito/shadcn_flutter/issues"
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
+  sdk: '>=3.3.0 <4.0.0'
   flutter: ">=3.24.0"
 
 dependencies:
@@ -25,10 +25,8 @@ dependencies:
   file_picker: ^8.1.5
   audioplayers: ^6.1.0
   data_widget: ^0.0.2
-  flutter_svg: ^2.0.19+1
 
-  archive:any
-
+  archive: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
