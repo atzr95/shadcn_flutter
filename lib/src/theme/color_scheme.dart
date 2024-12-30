@@ -12,7 +12,8 @@ class SingleChartColorScheme implements ChartColorScheme {
   const SingleChartColorScheme(this.color);
 
   @override
-  List<Color> get chartColors => [color, color, color, color, color];
+  List<Color> get chartColors =>
+      [color, color, color, color, color, color, color, color, color, color];
 
   @override
   Color get chart1 => color;
@@ -28,6 +29,21 @@ class SingleChartColorScheme implements ChartColorScheme {
 
   @override
   Color get chart5 => color;
+
+  @override
+  Color get chart6 => color;
+
+  @override
+  Color get chart7 => color;
+
+  @override
+  Color get chart8 => color;
+
+  @override
+  Color get chart9 => color;
+
+  @override
+  Color get chart10 => color;
 }
 
 class ChartColorScheme {
@@ -44,6 +60,11 @@ class ChartColorScheme {
   Color get chart3 => chartColors[2];
   Color get chart4 => chartColors[3];
   Color get chart5 => chartColors[4];
+  Color get chart6 => chartColors[5];
+  Color get chart7 => chartColors[6];
+  Color get chart8 => chartColors[7];
+  Color get chart9 => chartColors[8];
+  Color get chart10 => chartColors[9];
 }
 
 class ColorShades implements Color, ColorSwatch {
@@ -180,10 +201,10 @@ class ColorShades implements Color, ColorSwatch {
   Color get _primary => _colors[500]!;
 
   @override
-  int get alpha => _primary.alpha;
+  int get alpha => _primary.a.toInt();
 
   @override
-  int get blue => _primary.blue;
+  int get blue => _primary.b.toInt();
 
   @override
   double computeLuminance() {
@@ -191,16 +212,13 @@ class ColorShades implements Color, ColorSwatch {
   }
 
   @override
-  int get green => _primary.green;
+  int get green => _primary.g.toInt();
 
   @override
-  double get opacity => _primary.opacity;
+  double get opacity => _primary.a;
 
   @override
-  int get red => _primary.red;
-
-  @override
-  int get value => _primary.value;
+  int get red => _primary.r.toInt();
 
   @override
   ColorShades withAlpha(int a) {
@@ -217,7 +235,7 @@ class ColorShades implements Color, ColorSwatch {
     // calculate the difference between the current blue value and the new value
     int delta = b - blue;
     for (final key in _shadeValues) {
-      int safe = (_colors[key]!.blue + delta).clamp(0, 255);
+      int safe = (_colors[key]!.b.toInt() + delta).clamp(0, 255);
       colors[key] = _colors[key]!.withBlue(safe);
     }
     return ColorShades._direct(colors);
@@ -229,7 +247,7 @@ class ColorShades implements Color, ColorSwatch {
     // calculate the difference between the current green value and the new value
     int delta = g - green;
     for (final key in _shadeValues) {
-      int safe = (_colors[key]!.green + delta).clamp(0, 255);
+      int safe = (_colors[key]!.g.toInt() + delta).clamp(0, 255);
       colors[key] = _colors[key]!.withGreen(safe);
     }
     return ColorShades._direct(colors);
@@ -250,7 +268,7 @@ class ColorShades implements Color, ColorSwatch {
     // calculate the difference between the current red value and the new value
     int delta = r - red;
     for (final key in _shadeValues) {
-      int safe = (_colors[key]!.red + delta).clamp(0, 255);
+      int safe = (_colors[key]!.r.toInt() + delta).clamp(0, 255);
       colors[key] = _colors[key]!.withRed(safe);
     }
     return ColorShades._direct(colors);
@@ -289,16 +307,31 @@ class ColorShades implements Color, ColorSwatch {
       double? blue,
       ColorSpace? colorSpace}) {
     return Color.fromARGB(
-      (alpha ?? _primary.opacity * 255).toInt(),
-      (red ?? _primary.red).toInt(),
-      (green ?? _primary.green).toInt(),
-      (blue ?? _primary.blue).toInt(),
+      (alpha ?? _primary.a * 255).toInt(),
+      (red ?? _primary.r).toInt(),
+      (green ?? _primary.g).toInt(),
+      (blue ?? _primary.b).toInt(),
     );
+  }
+
+  @override
+  int get value =>
+      _floatToInt8(a) << 24 |
+      _floatToInt8(r) << 16 |
+      _floatToInt8(g) << 8 |
+      _floatToInt8(b) << 0;
+
+  static int _floatToInt8(double x) {
+    return (x * 255.0).round() & 0xff;
   }
 }
 
 String hexFromColor(Color color) {
-  return '#${color.value.toRadixString(16).toUpperCase()}';
+  final a = (color.a * 255).round();
+  final r = (color.r * 255).round();
+  final g = (color.g * 255).round();
+  final b = (color.b * 255).round();
+  return '#${(a << 24 | r << 16 | g << 8 | b).toRadixString(16).padLeft(8, '0').toUpperCase()}';
 }
 
 class ColorScheme implements ChartColorScheme {
@@ -327,6 +360,11 @@ class ColorScheme implements ChartColorScheme {
     'chart3',
     'chart4',
     'chart5',
+    'chart6',
+    'chart7',
+    'chart8',
+    'chart9',
+    'chart10',
   };
   final Brightness brightness;
   final Color background;
@@ -358,6 +396,16 @@ class ColorScheme implements ChartColorScheme {
   final Color chart4;
   @override
   final Color chart5;
+  @override
+  final Color chart6;
+  @override
+  final Color chart7;
+  @override
+  final Color chart8;
+  @override
+  final Color chart9;
+  @override
+  final Color chart10;
 
   const ColorScheme({
     required this.brightness,
@@ -385,6 +433,11 @@ class ColorScheme implements ChartColorScheme {
     required this.chart3,
     required this.chart4,
     required this.chart5,
+    required this.chart6,
+    required this.chart7,
+    required this.chart8,
+    required this.chart9,
+    required this.chart10,
   });
 
   ColorScheme.fromMap(Map<String, dynamic> map)
@@ -412,6 +465,11 @@ class ColorScheme implements ChartColorScheme {
         chart3 = map._col('chart3'),
         chart4 = map._col('chart4'),
         chart5 = map._col('chart5'),
+        chart6 = map._col('chart6'),
+        chart7 = map._col('chart7'),
+        chart8 = map._col('chart8'),
+        chart9 = map._col('chart9'),
+        chart10 = map._col('chart10'),
         brightness = Brightness.values
                 .where((element) => element.name == map['brightness'])
                 .firstOrNull ??
@@ -443,6 +501,11 @@ class ColorScheme implements ChartColorScheme {
       'chart3': hexFromColor(chart3),
       'chart4': hexFromColor(chart4),
       'chart5': hexFromColor(chart5),
+      'chart6': hexFromColor(chart6),
+      'chart7': hexFromColor(chart7),
+      'chart8': hexFromColor(chart8),
+      'chart9': hexFromColor(chart9),
+      'chart10': hexFromColor(chart10),
       'brightness': brightness.name,
     };
   }
@@ -473,6 +536,11 @@ class ColorScheme implements ChartColorScheme {
       'chart3': chart3,
       'chart4': chart4,
       'chart5': chart5,
+      'chart6': chart6,
+      'chart7': chart7,
+      'chart8': chart8,
+      'chart9': chart9,
+      'chart10': chart10,
     };
   }
 
@@ -505,6 +573,11 @@ class ColorScheme implements ChartColorScheme {
           chart3: colors._col('chart3'),
           chart4: colors._col('chart4'),
           chart5: colors._col('chart5'),
+          chart6: colors._col('chart6'),
+          chart7: colors._col('chart7'),
+          chart8: colors._col('chart8'),
+          chart9: colors._col('chart9'),
+          chart10: colors._col('chart10'),
         );
 
   ColorScheme copyWith({
@@ -556,11 +629,27 @@ class ColorScheme implements ChartColorScheme {
       chart3: chart3,
       chart4: chart4,
       chart5: chart5,
+      chart6: chart6,
+      chart7: chart7,
+      chart8: chart8,
+      chart9: chart9,
+      chart10: chart10,
     );
   }
 
   @override
-  List<Color> get chartColors => [chart1, chart2, chart3, chart4, chart5];
+  List<Color> get chartColors => [
+        chart1,
+        chart2,
+        chart3,
+        chart4,
+        chart5,
+        chart6,
+        chart7,
+        chart8,
+        chart9,
+        chart10,
+      ];
 
   static ColorScheme lerp(ColorScheme a, ColorScheme b, double t) {
     return ColorScheme(
@@ -593,6 +682,11 @@ class ColorScheme implements ChartColorScheme {
       chart3: Color.lerp(a.chart3, b.chart3, t)!,
       chart4: Color.lerp(a.chart4, b.chart4, t)!,
       chart5: Color.lerp(a.chart5, b.chart5, t)!,
+      chart6: Color.lerp(a.chart6, b.chart6, t)!,
+      chart7: Color.lerp(a.chart7, b.chart7, t)!,
+      chart8: Color.lerp(a.chart8, b.chart8, t)!,
+      chart9: Color.lerp(a.chart9, b.chart9, t)!,
+      chart10: Color.lerp(a.chart10, b.chart10, t)!,
     );
   }
 
@@ -625,7 +719,12 @@ class ColorScheme implements ChartColorScheme {
           chart2 == other.chart2 &&
           chart3 == other.chart3 &&
           chart4 == other.chart4 &&
-          chart5 == other.chart5;
+          chart5 == other.chart5 &&
+          chart6 == other.chart6 &&
+          chart7 == other.chart7 &&
+          chart8 == other.chart8 &&
+          chart9 == other.chart9 &&
+          chart10 == other.chart10;
 
   @override
   int get hashCode =>
@@ -653,11 +752,16 @@ class ColorScheme implements ChartColorScheme {
       chart2.hashCode ^
       chart3.hashCode ^
       chart4.hashCode ^
-      chart5.hashCode;
+      chart5.hashCode ^
+      chart6.hashCode ^
+      chart7.hashCode ^
+      chart8.hashCode ^
+      chart9.hashCode ^
+      chart10.hashCode;
 
   @override
   String toString() {
-    return 'ColorScheme{brightness: $brightness, background: $background, foreground: $foreground, card: $card, cardForeground: $cardForeground, popover: $popover, popoverForeground: $popoverForeground, primary: $primary, primaryForeground: $primaryForeground, secondary: $secondary, secondaryForeground: $secondaryForeground, muted: $muted, mutedForeground: $mutedForeground, accent: $accent, accentForeground: $accentForeground, destructive: $destructive, destructiveForeground: $destructiveForeground, border: $border, input: $input, ring: $ring, chart1: $chart1, chart2: $chart2, chart3: $chart3, chart4: $chart4, chart5: $chart5}';
+    return 'ColorScheme{brightness: $brightness, background: $background, foreground: $foreground, card: $card, cardForeground: $cardForeground, popover: $popover, popoverForeground: $popoverForeground, primary: $primary, primaryForeground: $primaryForeground, secondary: $secondary, secondaryForeground: $secondaryForeground, muted: $muted, mutedForeground: $mutedForeground, accent: $accent, accentForeground: $accentForeground, destructive: $destructive, destructiveForeground: $destructiveForeground, border: $border, input: $input, ring: $ring, chart1: $chart1, chart2: $chart2, chart3: $chart3, chart4: $chart4, chart5: $chart5, chart6: $chart6, chart7: $chart7, chart8: $chart8, chart9: $chart9, chart10: $chart10}';
   }
 }
 
