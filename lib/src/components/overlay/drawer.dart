@@ -553,7 +553,8 @@ class _DrawerWrapperState extends State<DrawerWrapper>
         child: container,
       );
     }
-    var barrierColor = widget.barrierColor ?? Colors.black.scaleAlpha(0.8);
+    var barrierColor =
+        widget.barrierColor ?? Colors.black.withValues(alpha: 0.8);
     if (animation != null) {
       if (widget.stackIndex != 0) {
         // weaken the barrier color for the upper sheets
