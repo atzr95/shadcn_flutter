@@ -301,6 +301,7 @@ class Select<T> extends StatefulWidget {
   final bool disableHoverEffect;
   final bool canUnselect;
   final bool autoClosePopover;
+  final BuildContext? popoverContext;
 
   const Select({
     super.key,
@@ -327,6 +328,7 @@ class Select<T> extends StatefulWidget {
     this.canUnselect = false,
     this.autoClosePopover = true,
     this.onSearch,
+    this.popoverContext,
     required this.itemBuilder,
     required this.children,
   });
@@ -449,7 +451,8 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
 
                   _popoverController
                       .show(
-                    context: context,
+                    context:
+                        widget.popoverContext ?? Navigator.of(context).context,
                     alignment: widget.popoverAlignment,
                     anchorAlignment: widget.popoverAnchorAlignment,
                     widthConstraint: widget.popupWidthConstraint,
@@ -458,6 +461,7 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                           const EdgeInsets.symmetric(vertical: 8) * scaling,
                       borderRadius: BorderRadius.circular(theme.radiusLg),
                     ),
+                    handler: PopoverOverlayHandler(),
                     builder: (context) {
                       return PopoverLifecycle(
                         onDispose: () {
@@ -953,8 +957,8 @@ class MultiSelect<T> extends StatefulWidget {
   final bool disableHoverEffect;
   final bool autoClosePopover;
   final SelectSearch? onSearch;
-  final Widget?
-      allSelectedText; // New parameter for showing text when all items are selected
+  final Widget? allSelectedText;
+  final BuildContext? popoverContext;
 
   const MultiSelect({
     super.key,
@@ -981,6 +985,7 @@ class MultiSelect<T> extends StatefulWidget {
     this.autoClosePopover = false,
     this.onSearch,
     this.allSelectedText,
+    this.popoverContext,
     required this.itemBuilder,
     required this.children,
   });
@@ -1125,7 +1130,8 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
 
                   _popoverController
                       .show(
-                    context: context,
+                    context:
+                        widget.popoverContext ?? Navigator.of(context).context,
                     alignment: widget.popoverAlignment,
                     anchorAlignment: widget.popoverAnchorAlignment,
                     widthConstraint: widget.popupWidthConstraint,
@@ -1134,6 +1140,7 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                           const EdgeInsets.symmetric(vertical: 8) * scaling,
                       borderRadius: BorderRadius.circular(theme.radiusLg),
                     ),
+                    handler: PopoverOverlayHandler(),
                     builder: (context) {
                       return PopoverLifecycle(
                         onDispose: () {
