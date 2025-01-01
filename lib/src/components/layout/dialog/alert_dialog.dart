@@ -58,6 +58,8 @@ class _AlertDialogState extends State<AlertDialog> {
     MediaQuery.of(context);
 
     return material.Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.zero,
       child: ModalContainer(
         borderRadius:
             widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
