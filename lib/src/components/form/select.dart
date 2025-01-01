@@ -302,6 +302,7 @@ class Select<T> extends StatefulWidget {
   final bool canUnselect;
   final bool autoClosePopover;
   final BuildContext? popoverContext;
+  final OverlayHandler? overlayHandler;
 
   const Select({
     super.key,
@@ -331,6 +332,7 @@ class Select<T> extends StatefulWidget {
     this.popoverContext,
     required this.itemBuilder,
     required this.children,
+    this.overlayHandler,
   });
 
   @override
@@ -451,8 +453,7 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
 
                   _popoverController
                       .show(
-                    context:
-                        widget.popoverContext ?? Navigator.of(context).context,
+                    context: widget.popoverContext ?? context,
                     alignment: widget.popoverAlignment,
                     anchorAlignment: widget.popoverAnchorAlignment,
                     widthConstraint: widget.popupWidthConstraint,
@@ -461,7 +462,11 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                           const EdgeInsets.symmetric(vertical: 8) * scaling,
                       borderRadius: BorderRadius.circular(theme.radiusLg),
                     ),
-                    handler: PopoverOverlayHandler(),
+                    //handler: PopoverOverlayHandler(),
+                    handler: widget.overlayHandler ??
+                        (isMobile(theme.platform)
+                            ? const SheetOverlayHandler()
+                            : const PopoverOverlayHandler()),
                     builder: (context) {
                       return PopoverLifecycle(
                         onDispose: () {

@@ -792,9 +792,15 @@ DrawerOverlayCompleter<T?> openRawDrawer<T>({
   CapturedThemes? themes;
   CapturedData? data;
   if (parentLayer != null) {
-    themes =
-        InheritedTheme.capture(from: context, to: parentLayer.overlay.context);
-    data = Data.capture(from: context, to: parentLayer.overlay.context);
+    try {
+      themes = InheritedTheme.capture(
+          from: context, to: parentLayer.overlay.context);
+      data = Data.capture(from: context, to: parentLayer.overlay.context);
+    } catch (e) {
+      // If theme capture fails, capture from current context
+      themes = InheritedTheme.capture(from: context, to: context);
+      data = Data.capture(from: context, to: context);
+    }
   } else {
     parentLayer =
         DrawerOverlay.maybeFindMessenger(context, useRootDrawerOverlay);

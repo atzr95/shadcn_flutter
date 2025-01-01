@@ -22,7 +22,7 @@ class ModalContainer extends StatelessWidget {
     this.modal = true,
     this.surfaceClip = true,
     this.borderRadius = BorderRadius.zero,
-    this.barrierColor = const Color.fromRGBO(0, 0, 0, 0.8),
+    this.barrierColor = const Color.from(alpha: 0.8, blue: 0, green: 0, red: 0),
     this.padding = EdgeInsets.zero,
     this.fadeAnimation,
     required this.child,
@@ -75,7 +75,7 @@ class ModalContainer extends StatelessWidget {
 }
 
 class SurfaceBarrierPainter extends CustomPainter {
-  static const double bigSize = 10000000000000000000000;
+  static const double bigSize = 1000000000;
   static const bigScreen = Size(bigSize, bigSize);
   static const bigOffset = Offset(-bigSize / 2, -bigSize / 2);
 
@@ -104,8 +104,8 @@ class SurfaceBarrierPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint()
       ..color = barrierColor
-      ..blendMode = BlendMode.srcOver
       ..style = PaintingStyle.fill;
+
     if (clip) {
       var rect = (Offset.zero & size);
       rect = _padRect(rect);
@@ -234,7 +234,7 @@ Future<T?> showDialog<T>({
     builder: builder,
     themes: themes,
     barrierDismissible: barrierDismissible,
-    barrierColor: barrierColor ?? const Color.fromRGBO(0, 0, 0, 0.8),
+    barrierColor: barrierColor ?? const Color.fromRGBO(0, 0, 0, 0),
     barrierLabel: barrierLabel,
     useSafeArea: useSafeArea,
     settings: routeSettings,
@@ -254,9 +254,7 @@ Future<T?> showDialog<T>({
     },
     alignment: alignment ?? Alignment.center,
   );
-  return navigatorState.push(
-    dialogRoute,
-  );
+  return navigatorState.push(dialogRoute);
 }
 
 class _DialogOverlayWrapper<T> extends StatefulWidget {
@@ -358,6 +356,11 @@ class DialogOverlayHandler extends OverlayHandler {
         InheritedTheme.capture(from: context, to: navigatorState.context);
     final CapturedData data =
         Data.capture(from: context, to: navigatorState.context);
+
+    // Use a consistent barrier color
+    final barrierColor =
+        overlayBarrier?.barrierColor ?? const Color.fromRGBO(0, 0, 0, 0.8);
+
     var dialogRoute = DialogRoute<T>(
       context: context,
       builder: (context) {
@@ -377,8 +380,7 @@ class DialogOverlayHandler extends OverlayHandler {
               surfaceClip: ModalContainer.shouldClipSurface(surfaceOpacity),
               borderRadius: overlayBarrier.borderRadius,
               padding: overlayBarrier.padding,
-              barrierColor: overlayBarrier.barrierColor ??
-                  const Color.fromRGBO(0, 0, 0, 0.8),
+              barrierColor: barrierColor,
               child: child,
             ),
           );
@@ -392,9 +394,7 @@ class DialogOverlayHandler extends OverlayHandler {
       },
       themes: themes,
       barrierDismissible: barrierDismissable,
-      barrierColor: overlayBarrier == null
-          ? const Color.fromRGBO(0, 0, 0, 0.8)
-          : Colors.transparent,
+      barrierColor: overlayBarrier == null ? barrierColor : Colors.transparent,
       barrierLabel: 'Dismiss',
       useSafeArea: true,
       data: data,
