@@ -1,4 +1,5 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:flutter/material.dart' as material;
 
 class AlertDialog extends StatefulWidget {
   final Widget? leading;
@@ -11,7 +12,6 @@ class AlertDialog extends StatefulWidget {
   final Color? barrierColor;
   final EdgeInsetsGeometry? padding;
   final bool isFullscreen;
-  final bool adjustForKeyboard;
   final bool dismissKeyboardOnTapOutside;
 
   const AlertDialog({
@@ -25,7 +25,6 @@ class AlertDialog extends StatefulWidget {
     this.surfaceOpacity,
     this.barrierColor,
     this.padding,
-    this.adjustForKeyboard = true,
     this.dismissKeyboardOnTapOutside = true,
   }) : isFullscreen = false;
 
@@ -40,7 +39,6 @@ class AlertDialog extends StatefulWidget {
     this.surfaceOpacity,
     this.barrierColor,
     this.padding,
-    this.adjustForKeyboard = true,
     this.dismissKeyboardOnTapOutside = true,
   }) : isFullscreen = true;
 
@@ -57,22 +55,19 @@ class _AlertDialogState extends State<AlertDialog> {
   Widget build(BuildContext context) {
     var themeData = Theme.of(context);
     var scaling = themeData.scaling;
-    var mediaQuery = MediaQuery.of(context);
+    MediaQuery.of(context);
 
-    return ModalContainer(
-      borderRadius:
-          widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
-      barrierColor: widget.barrierColor ?? Colors.black.withOpacity(0.8),
-      surfaceClip: ModalContainer.shouldClipSurface(
-          widget.surfaceOpacity ?? themeData.surfaceOpacity),
-      child: GestureDetector(
-        onTap: widget.dismissKeyboardOnTapOutside ? _unfocus : null,
-        behavior: HitTestBehavior.translucent,
-        child: AnimatedPadding(
-          padding: widget.adjustForKeyboard
-              ? EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom)
-              : EdgeInsets.zero,
-          duration: const Duration(milliseconds: 100),
+    return material.Dialog(
+      child: ModalContainer(
+        borderRadius:
+            widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
+        barrierColor:
+            widget.barrierColor ?? Colors.black.withValues(alpha: 0.8),
+        surfaceClip: ModalContainer.shouldClipSurface(
+            widget.surfaceOpacity ?? themeData.surfaceOpacity),
+        child: GestureDetector(
+          onTap: widget.dismissKeyboardOnTapOutside ? _unfocus : null,
+          behavior: HitTestBehavior.translucent,
           child: OutlinedContainer(
             backgroundColor: themeData.colorScheme.popover,
             borderRadius: widget.isFullscreen

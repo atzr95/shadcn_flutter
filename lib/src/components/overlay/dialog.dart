@@ -215,7 +215,7 @@ Future<T?> showDialog<T>({
   bool barrierDismissible = true,
   Color? barrierColor,
   String? barrierLabel,
-  bool useSafeArea = true,
+  bool useSafeArea = false,
   RouteSettings? routeSettings,
   Offset? anchorPoint,
   TraversalEdgeBehavior? traversalEdgeBehavior,
