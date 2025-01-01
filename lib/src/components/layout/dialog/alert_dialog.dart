@@ -25,7 +25,7 @@ class AlertDialog extends StatefulWidget {
     this.surfaceOpacity,
     this.barrierColor,
     this.padding,
-    this.adjustForKeyboard = false,
+    this.adjustForKeyboard = true,
     this.dismissKeyboardOnTapOutside = true,
   }) : isFullscreen = false;
 
