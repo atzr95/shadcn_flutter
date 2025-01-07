@@ -12,6 +12,7 @@ class Pagination extends StatelessWidget {
   final bool hidePreviousOnFirstPage;
   final bool hideNextOnLastPage;
   final bool showLabel;
+  final bool dense;
 
   const Pagination({
     super.key,
@@ -24,6 +25,7 @@ class Pagination extends StatelessWidget {
     this.hidePreviousOnFirstPage = false,
     this.hideNextOnLastPage = false,
     this.showLabel = true,
+    this.dense = false,
   });
 
   bool get hasPrevious => page > 1;
@@ -110,10 +112,12 @@ class Pagination extends StatelessWidget {
             if (showSkipToFirstPage && firstShownPage - 1 > 1)
               GhostButton(
                 onPressed: () => onPageChanged(1),
+                density: dense ? ButtonDensity.dense : ButtonDensity.normal,
                 child: const Text('1'),
               ),
             GhostButton(
               onPressed: () => onPageChanged(firstShownPage - 1),
+              density: dense ? ButtonDensity.dense : ButtonDensity.normal,
               child: const MoreDots(),
             ),
           ],
@@ -121,21 +125,25 @@ class Pagination extends StatelessWidget {
             if (p == page)
               OutlineButton(
                 onPressed: () => onPageChanged(p),
+                density: dense ? ButtonDensity.dense : ButtonDensity.normal,
                 child: Text('$p'),
               )
             else
               GhostButton(
                 onPressed: () => onPageChanged(p),
+                density: dense ? ButtonDensity.dense : ButtonDensity.normal,
                 child: Text('$p'),
               ),
           if (hasMoreNextPages) ...[
             GhostButton(
               onPressed: () => onPageChanged(lastShownPage + 1),
+              density: dense ? ButtonDensity.dense : ButtonDensity.normal,
               child: const MoreDots(),
             ),
             if (showSkipToLastPage && lastShownPage + 1 < totalPages)
               GhostButton(
                 onPressed: () => onPageChanged(totalPages),
+                density: dense ? ButtonDensity.dense : ButtonDensity.normal,
                 child: Text('$totalPages'),
               ),
           ],
