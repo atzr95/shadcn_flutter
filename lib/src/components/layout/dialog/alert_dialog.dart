@@ -103,7 +103,7 @@ class _AlertDialogState extends State<AlertDialog> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (widget.title != null)
-                                widget.title!.large().semiBold(),
+                                widget.title!.large().semiBold().foreground(),
                               if (widget.content != null)
                                 Flexible(
                                   child: widget.content!.small().muted(),
