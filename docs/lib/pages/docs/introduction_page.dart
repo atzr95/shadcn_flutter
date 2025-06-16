@@ -29,7 +29,8 @@ class _IntroductionPageState extends State<IntroductionPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Introduction').h1(),
+          Text('Introduction', style: TextStyle(color: Colors.green.shade50))
+              .h1(),
           const Text(
                   'Beautifully designed components from Shadcn/UI is now available for Flutter.')
               .lead(),

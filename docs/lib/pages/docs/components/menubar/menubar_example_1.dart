@@ -43,6 +43,7 @@ class _MenubarExample1State extends State<MenubarExample1> {
             ),
             MenuDivider(),
             MenuButton(
+              subMenuWidth: 100,
               subMenu: [
                 MenuButton(
                   child: Text('Email Link'),

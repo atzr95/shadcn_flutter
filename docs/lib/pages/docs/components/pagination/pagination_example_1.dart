@@ -14,6 +14,8 @@ class _PaginationExample1State extends State<PaginationExample1> {
     return Pagination(
       page: page,
       totalPages: 20,
+      dense: true,
+      showLabel: false,
       onPageChanged: (value) {
         setState(() {
           page = value;

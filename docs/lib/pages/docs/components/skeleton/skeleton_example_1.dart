@@ -27,6 +27,14 @@ class SkeletonExample1 extends StatelessWidget {
           // Note: Avatar and other Image related widget needs its own skeleton
           trailing: const Icon(Icons.arrow_forward),
         ).asSkeleton(),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 100,
+            width: 100,
+            color: Colors.red,
+          ),
+        ).asSkeleton(),
       ],
     );
   }

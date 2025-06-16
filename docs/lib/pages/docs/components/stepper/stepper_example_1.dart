@@ -21,6 +21,7 @@ class _StepperExample1State extends State<StepperExample1> {
           title: const Text('Step 1'),
           contentBuilder: (context) {
             return StepContainer(
+              actionsAlignment: MainAxisAlignment.end,
               actions: [
                 const SecondaryButton(
                   child: Text('Prev'),

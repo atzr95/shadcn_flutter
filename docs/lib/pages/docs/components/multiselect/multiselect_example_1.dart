@@ -28,6 +28,7 @@ class _MultiSelectExample1State extends State<MultiSelectExample1> {
         });
       },
       value: selectedValues,
+      allSelectedText: const Text('All selected'),
       placeholder: const Text('Select a fruit'),
       children: const [
         SelectGroup(

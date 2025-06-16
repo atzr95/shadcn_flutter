@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class TableExample1 extends StatefulWidget {
@@ -9,7 +10,16 @@ class TableExample1 extends StatefulWidget {
 
 class _TableExample1State extends State<TableExample1> {
   TableCell buildHeaderCell(String text, [bool alignRight = false]) {
+    final theme = Theme.of(context);
     return TableCell(
+      theme: TableCellTheme(
+        border: WidgetStatePropertyAll(
+          Border.all(
+            color: theme.colorScheme.border,
+            strokeAlign: BorderSide.strokeAlignCenter,
+          ),
+        ),
+      ),
       child: Container(
         padding: const EdgeInsets.all(8),
         alignment: alignRight ? Alignment.centerRight : null,
@@ -19,7 +29,16 @@ class _TableExample1State extends State<TableExample1> {
   }
 
   TableCell buildCell(String text, [bool alignRight = false]) {
+    final theme = Theme.of(context);
     return TableCell(
+      theme: TableCellTheme(
+        border: WidgetStatePropertyAll(
+          Border.all(
+            color: theme.colorScheme.border,
+            strokeAlign: BorderSide.strokeAlignCenter,
+          ),
+        ),
+      ),
       child: Container(
         padding: const EdgeInsets.all(8),
         alignment: alignRight ? Alignment.centerRight : null,
@@ -28,11 +47,17 @@ class _TableExample1State extends State<TableExample1> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget buildTableContent(
+      {bool isScrollable = false, Size? viewportSize, Offset? offset}) {
     return Table(
+      horizontalOffset: offset?.dx,
+      verticalOffset: offset?.dy,
+      viewportSize: viewportSize,
+      defaultColumnWidth:
+          isScrollable ? const FixedTableSize(150) : const FlexTableSize(),
+      defaultRowHeight: const FixedTableSize(40),
       rows: [
-        TableRow(
+        TableHeader(
           cells: [
             buildHeaderCell('Invoice'),
             buildHeaderCell('Status'),
@@ -104,11 +129,11 @@ class _TableExample1State extends State<TableExample1> {
                 padding: const EdgeInsets.all(8),
                 child: Row(
                   children: [
-                    Text('Total'),
+                    const Text('Total'),
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: Text('\$2,300.00').semiBold(),
+                        child: const Text('\$2,300.00').semiBold(),
                       ),
                     ),
                   ],
@@ -118,6 +143,50 @@ class _TableExample1State extends State<TableExample1> {
           ],
         ),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minTableWidth = 150.0 * 4; // 4 columns * 150px min width
+        final isSmallScreen = constraints.maxWidth < minTableWidth;
+
+        if (isSmallScreen) {
+          return ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {
+                PointerDeviceKind.touch,
+                PointerDeviceKind.mouse,
+              },
+              overscroll: false,
+            ),
+            child: SizedBox(
+              height: 400,
+              child: OutlinedContainer(
+                child: ScrollableClient(
+                  diagonalDragBehavior: DiagonalDragBehavior.free,
+                  builder: (context, offset, viewportSize, child) {
+                    return buildTableContent(
+                      isScrollable: true,
+                      viewportSize: viewportSize,
+                      offset: offset,
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 400,
+          child: OutlinedContainer(
+            child: buildTableContent(isScrollable: false),
+          ),
+        );
+      },
     );
   }
 }

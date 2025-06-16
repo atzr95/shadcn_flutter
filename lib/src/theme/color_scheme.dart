@@ -321,6 +321,11 @@ class ColorShades implements Color, ColorSwatch {
       _floatToInt8(g) << 8 |
       _floatToInt8(b) << 0;
 
+  @override
+  int toARGB32() {
+    return value;
+  }
+
   static int _floatToInt8(double x) {
     return (x * 255.0).round() & 0xff;
   }

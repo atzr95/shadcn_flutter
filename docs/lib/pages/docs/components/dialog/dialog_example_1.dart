@@ -11,47 +11,71 @@ class DialogExample1 extends StatelessWidget {
           context: context,
           builder: (context) {
             final FormController controller = FormController();
-            return AlertDialog(
-              title: const Text('Edit profile'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                      'Make changes to your profile here. Click save when you\'re done'),
-                  const Gap(16),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Form(
-                      controller: controller,
-                      child: const FormTableLayout(rows: [
-                        FormField<String>(
-                          key: FormKey(#name),
-                          label: Text('Name'),
-                          child: TextField(
-                            initialValue: 'Thito Yalasatria Sunarya',
-                          ),
-                        ),
-                        FormField<String>(
-                          key: FormKey(#username),
-                          label: Text('Username'),
-                          child: TextField(
-                            initialValue: '@sunaryathito',
-                          ),
-                        ),
-                      ]),
-                    ).withPadding(vertical: 16),
+            return GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: AlertDialog(
+                dismissKeyboardOnTapOutside: true,
+                title: const Text('Edit profile'),
+                content: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 400,
+                    maxHeight: 400,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                            'Make changes to your profile here. Click save when you\'re done'),
+                        const Gap(16),
+                        Form(
+                          controller: controller,
+                          child: FormTableLayout(rows: [
+                            FormField<String>(
+                              key: FormKey(#name),
+                              label: Text('Name'),
+                              child: TextField(
+                                initialValue: 'Thito Yalasatria Sunarya',
+                              ),
+                            ),
+                            FormField<String>(
+                              key: FormKey(#username),
+                              label: Text('Username'),
+                              child: TextField(
+                                initialValue: '@sunaryathito',
+                              ),
+                            ),
+                            FormField<String>(
+                              key: FormKey(#email),
+                              label: Text('Email'),
+                              child: TextField(
+                                initialValue: 'thito@example.com',
+                              ),
+                            ),
+                            FormField<String>(
+                              key: FormKey(#bio),
+                              label: Text('Bio'),
+                              child: TextField(
+                                initialValue: 'I love coding!',
+                                maxLines: 3,
+                              ),
+                            ),
+                          ]),
+                        ).withPadding(vertical: 16),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  PrimaryButton(
+                    child: const Text('Save changes'),
+                    onPressed: () {
+                      Navigator.of(context).pop(controller.values);
+                    },
                   ),
                 ],
               ),
-              actions: [
-                PrimaryButton(
-                  child: const Text('Save changes'),
-                  onPressed: () {
-                    Navigator.of(context).pop(controller.values);
-                  },
-                ),
-              ],
             );
           },
         );
