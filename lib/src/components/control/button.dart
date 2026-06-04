@@ -47,6 +47,22 @@ class ToggleState extends State<Toggle> {
                 density: widget.style.density,
                 shape: widget.style.shape,
                 size: widget.style.size,
+              ).copyWith(
+                // The secondary fill lifts a selected toggle off the page in
+                // dark themes, but in light themes secondary (#f1f5f9) is
+                // almost indistinguishable from the background, so the
+                // selection is hard to see. Add a border so the selected
+                // toggle stays clearly defined in both themes. Dark is
+                // effectively unchanged (border == fill there).
+                decoration: (context, states, value) {
+                  final theme = Theme.of(context);
+                  if (value is BoxDecoration) {
+                    return value.copyWith(
+                      border: Border.all(color: theme.colorScheme.border),
+                    );
+                  }
+                  return value;
+                },
               )
             : widget.style.copyWith(textStyle: (context, states, value) {
                 final theme = Theme.of(context);
