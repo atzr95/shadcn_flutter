@@ -1562,8 +1562,14 @@ Decoration _buttonSecondaryDecoration(
   // indistinguishable from a light background (secondary #f1f5f9 vs
   // background #fafafa). A `border`-token outline keeps secondary buttons
   // clearly defined in light mode; in dark mode border == fill, so it is a
-  // no-op.
-  final border = Border.all(color: themeData.colorScheme.border);
+  // no-op. strokeAlignOutside paints the border just outside the box so it
+  // adds no layout size (secondary buttons previously had no border; an
+  // inside-aligned border would grow every button by 2px and overflow tight
+  // layouts).
+  final border = Border.all(
+    color: themeData.colorScheme.border,
+    strokeAlign: BorderSide.strokeAlignOutside,
+  );
   if (states.contains(WidgetState.disabled)) {
     return BoxDecoration(
       color: themeData.colorScheme.primaryForeground,
