@@ -47,22 +47,6 @@ class ToggleState extends State<Toggle> {
                 density: widget.style.density,
                 shape: widget.style.shape,
                 size: widget.style.size,
-              ).copyWith(
-                // The secondary fill lifts a selected toggle off the page in
-                // dark themes, but in light themes secondary (#f1f5f9) is
-                // almost indistinguishable from the background, so the
-                // selection is hard to see. Add a border so the selected
-                // toggle stays clearly defined in both themes. Dark is
-                // effectively unchanged (border == fill there).
-                decoration: (context, states, value) {
-                  final theme = Theme.of(context);
-                  if (value is BoxDecoration) {
-                    return value.copyWith(
-                      border: Border.all(color: theme.colorScheme.border),
-                    );
-                  }
-                  return value;
-                },
               )
             : widget.style.copyWith(textStyle: (context, states, value) {
                 final theme = Theme.of(context);
@@ -1574,20 +1558,29 @@ IconThemeData _buttonPrimaryIconTheme(
 Decoration _buttonSecondaryDecoration(
     BuildContext context, Set<WidgetState> states) {
   var themeData = Theme.of(context);
+  // The secondary fill lifts off the page in dark themes but is nearly
+  // indistinguishable from a light background (secondary #f1f5f9 vs
+  // background #fafafa). A `border`-token outline keeps secondary buttons
+  // clearly defined in light mode; in dark mode border == fill, so it is a
+  // no-op.
+  final border = Border.all(color: themeData.colorScheme.border);
   if (states.contains(WidgetState.disabled)) {
     return BoxDecoration(
       color: themeData.colorScheme.primaryForeground,
+      border: border,
       borderRadius: BorderRadius.circular(themeData.radiusMd),
     );
   }
   if (states.contains(WidgetState.hovered)) {
     return BoxDecoration(
       color: themeData.colorScheme.secondary.scaleAlpha(0.8),
+      border: border,
       borderRadius: BorderRadius.circular(themeData.radiusMd),
     );
   }
   return BoxDecoration(
     color: themeData.colorScheme.secondary,
+    border: border,
     borderRadius: BorderRadius.circular(themeData.radiusMd),
   );
 }
