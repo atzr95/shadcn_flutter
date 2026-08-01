@@ -1611,12 +1611,12 @@ IconThemeData _buttonSecondaryIconTheme(
   );
 }
 
-// An outline button's border is the only thing identifying the control, so the
-// enabled states take `input` (the interactive-outline token) rather than
-// `border`, which exists for decorative edges like cards and dividers and is
-// deliberately near-invisible in some themes. Disabled deliberately keeps
-// `border`: WCAG 1.4.11 exempts inactive components, and a disabled control
-// should recede rather than advertise itself.
+// Outline buttons stay on `border`, NOT `input`. WCAG 1.4.11 only requires 3:1
+// for the visual information *required to identify* a component: an empty text
+// field has no content, so its outline is load-bearing and uses `input`, but a
+// button always carries a visible label or icon that identifies it, leaving its
+// outline decorative. Raising it to `input` is compliant but turns dense rows
+// of icon buttons into a grid of boxes, so `border` is both correct and calmer.
 Decoration _buttonOutlineDecoration(
     BuildContext context, Set<WidgetState> states) {
   var themeData = Theme.of(context);
@@ -1634,7 +1634,7 @@ Decoration _buttonOutlineDecoration(
     return BoxDecoration(
       color: themeData.colorScheme.muted.scaleAlpha(0.8),
       border: Border.all(
-        color: themeData.colorScheme.input,
+        color: themeData.colorScheme.border,
         width: 1,
       ),
       borderRadius: BorderRadius.circular(themeData.radiusMd),
@@ -1643,7 +1643,7 @@ Decoration _buttonOutlineDecoration(
   return BoxDecoration(
     color: themeData.colorScheme.muted.withOpacity(0),
     border: Border.all(
-      color: themeData.colorScheme.input,
+      color: themeData.colorScheme.border,
       width: 1,
     ),
     borderRadius: BorderRadius.circular(themeData.radiusMd),
