@@ -210,7 +210,12 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
                   color: widget.filled ? theme.colorScheme.muted : null,
                   border: widget.border
                       ? Border.all(
-                          color: _statesController.value.contains(WidgetState.focused) && widget.enabled ? theme.colorScheme.ring : theme.colorScheme.border,
+                          // `input`, not `border`: an empty field's outline is the
+                          // only thing identifying the control, so it needs to meet
+                          // 3:1 (WCAG 1.4.11) independently of card borders, which
+                          // are decorative and stay subtle. These were the same
+                          // token, so themes could not raise one without the other.
+                          color: _statesController.value.contains(WidgetState.focused) && widget.enabled ? theme.colorScheme.ring : theme.colorScheme.input,
                         )
                       : null,
                 ),
