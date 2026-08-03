@@ -829,6 +829,11 @@ class Calendar extends StatelessWidget {
     final calendarValue = value;
     int weekDayStart = (DateTime(view.year, view.month).weekday + 1);
     int daysInMonth = DateTime(view.year, view.month + 1, 0).day;
+    // Day 0 of this month is the last day of the previous one. The leading
+    // cells belong to that month, so they must be counted back from ITS length
+    // — using daysInMonth here is only correct when the two months happen to
+    // differ by exactly one day.
+    int daysInPreviousMonth = DateTime(view.year, view.month, 0).day;
     ShadcnLocalizations localizations =
         Localizations.of(context, ShadcnLocalizations);
     List<Widget> rows = [];
@@ -859,7 +864,9 @@ class Calendar extends StatelessWidget {
     }
     // start from the first day of the week
     for (int i = 1; i < weekDayStart; i++) {
-      int previousMonthDay = daysInMonth - (weekDayStart - i);
+      // i runs 1..weekDayStart-1, so the LAST leading cell is the previous
+      // month's last day: subtract (weekDayStart - 1 - i), not (weekDayStart - i).
+      int previousMonthDay = daysInPreviousMonth - (weekDayStart - 1 - i);
       var dateTime = DateTime(view.year, view.month - 1, previousMonthDay);
       int indexAtRow = i - 1;
       CalendarItemType type = CalendarItemType.none;
