@@ -215,8 +215,13 @@ class _StepVariantCircle extends StepVariant {
                                 height: 0,
                               ),
                               secondChild: Container(
-                                margin: EdgeInsets.only(
-                                  left: properties.size.size,
+                                // Directional: the step rail is positioned
+                                // with PositionedDirectional(start: 0), so the
+                                // clearance reserved for it must resolve the
+                                // same way. A physical `left` left the RTL rail
+                                // drawing straight through the step content.
+                                margin: EdgeInsetsDirectional.only(
+                                  start: properties.size.size,
                                 ),
                                 child: child!,
                               ),
@@ -433,8 +438,13 @@ class _StepVariantCircleAlternative extends StepVariant {
                                 height: 0,
                               ),
                               secondChild: Container(
-                                margin: EdgeInsets.only(
-                                  left: properties.size.size,
+                                // Directional: the step rail is positioned
+                                // with PositionedDirectional(start: 0), so the
+                                // clearance reserved for it must resolve the
+                                // same way. A physical `left` left the RTL rail
+                                // drawing straight through the step content.
+                                margin: EdgeInsetsDirectional.only(
+                                  start: properties.size.size,
                                 ),
                                 child: child!,
                               ),

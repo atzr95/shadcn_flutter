@@ -470,15 +470,17 @@ class _DrawerWrapperState extends State<DrawerWrapper>
 
   BorderRadiusGeometry getBorderRadius(double radius) {
     switch (widget.position) {
+      // Directional: the sheet is placed with centerStart/centerEnd, so the
+      // rounded corners must resolve the same way. Physical corners rounded
+      // the outer edge (against the screen) in RTL instead of the inner edge
+      // facing the content.
       case OverlayPosition.left:
-        return BorderRadius.only(
-          topRight: Radius.circular(radius),
-          bottomRight: Radius.circular(radius),
+        return BorderRadiusDirectional.horizontal(
+          end: Radius.circular(radius),
         );
       case OverlayPosition.right:
-        return BorderRadius.only(
-          topLeft: Radius.circular(radius),
-          bottomLeft: Radius.circular(radius),
+        return BorderRadiusDirectional.horizontal(
+          start: Radius.circular(radius),
         );
       case OverlayPosition.top:
         return BorderRadius.only(
@@ -1150,14 +1152,19 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
         widget.useSafeArea && widget.position != OverlayPosition.left;
     bool padRight =
         widget.useSafeArea && widget.position != OverlayPosition.right;
+    // `left`/`right` place the sheet *directionally* (centerStart/centerEnd),
+    // so the slide-in offset has to follow the same resolution. A fixed
+    // Offset(-1, 0) made an RTL drawer sit on the right but fly in from the
+    // left.
+    final bool isRtl = Directionality.of(context) == TextDirection.rtl;
     switch (widget.position) {
       case OverlayPosition.left:
         alignment = AlignmentDirectional.centerStart;
-        startFractionalOffset = const Offset(-1, 0);
+        startFractionalOffset = Offset(isRtl ? 1 : -1, 0);
         break;
       case OverlayPosition.right:
         alignment = AlignmentDirectional.centerEnd;
-        startFractionalOffset = const Offset(1, 0);
+        startFractionalOffset = Offset(isRtl ? -1 : 1, 0);
         break;
       case OverlayPosition.top:
         alignment = Alignment.topCenter;
