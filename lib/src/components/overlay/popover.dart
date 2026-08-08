@@ -46,13 +46,20 @@ class PopoverOverlayHandler extends OverlayHandler {
     Size? anchorSize;
     if (position == null) {
       RenderBox renderBox = context.findRenderObject() as RenderBox;
-      Offset pos = renderBox.localToGlobal(Offset.zero);
-      anchorSize ??= renderBox.size;
+      // Measure in global space: renderBox.size is local and disagrees with
+      // localToGlobal when an ancestor applies a scale transform (e.g. a
+      // ResponsiveScaledBox between the anchor and the root overlay), which
+      // made anchor-sized popups wider than the anchor appears on screen.
+      Rect globalRect = MatrixUtils.transformRect(
+        renderBox.getTransformTo(null),
+        Offset.zero & renderBox.size,
+      );
+      anchorSize ??= globalRect.size;
       position = Offset(
-        pos.dx +
+        globalRect.left +
             anchorSize.width / 2 +
             anchorSize.width / 2 * resolvedAnchorAlignment.x,
-        pos.dy +
+        globalRect.top +
             anchorSize.height / 2 +
             anchorSize.height / 2 * resolvedAnchorAlignment.y,
       );
@@ -481,12 +488,17 @@ class PopoverAnchorState extends State<PopoverAnchor>
     // update position based on anchorContext
     RenderBox? renderBox = anchorContext.findRenderObject() as RenderBox?;
     if (renderBox != null) {
-      Offset pos = renderBox.localToGlobal(Offset.zero);
-      Size size = renderBox.size;
+      // Global-space rect, for the same transform-aware reason as in
+      // PopoverOverlayHandler.show.
+      Rect globalRect = MatrixUtils.transformRect(
+        renderBox.getTransformTo(null),
+        Offset.zero & renderBox.size,
+      );
+      Size size = globalRect.size;
       var anchorAlignment = _anchorAlignment.optionallyResolve(context);
       Offset newPos = Offset(
-        pos.dx + size.width / 2 + size.width / 2 * anchorAlignment.x,
-        pos.dy + size.height / 2 + size.height / 2 * anchorAlignment.y,
+        globalRect.left + size.width / 2 + size.width / 2 * anchorAlignment.x,
+        globalRect.top + size.height / 2 + size.height / 2 * anchorAlignment.y,
       );
       if (_position != newPos) {
         setState(() {
@@ -1140,11 +1152,13 @@ class PopoverLayoutRender extends RenderShiftedBox {
     double maxHeight = constraints.maxHeight;
     if (_widthConstraint == PopoverConstraint.anchorFixedSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
-      minWidth = _anchorSize!.width;
-      maxWidth = _anchorSize!.width;
+      // Never force the popup wider than the overlay, or it gets pushed
+      // off-screen no matter how it is positioned.
+      minWidth = _anchorSize!.width.clamp(0, maxWidth);
+      maxWidth = minWidth;
     } else if (_widthConstraint == PopoverConstraint.anchorMinSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
-      minWidth = _anchorSize!.width;
+      minWidth = _anchorSize!.width.clamp(0, maxWidth);
     } else if (_widthConstraint == PopoverConstraint.anchorMaxSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
       maxWidth = _anchorSize!.width;
