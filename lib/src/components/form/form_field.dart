@@ -136,7 +136,7 @@ class ObjectFormFieldState<T> extends State<ObjectFormField<T>>
           this._value = value.value;
         });
         widget.onChanged?.call(value.value);
-        context.reportNewFormValue(value);
+        context.reportNewFormValue(value.value);
       }
     });
   }
