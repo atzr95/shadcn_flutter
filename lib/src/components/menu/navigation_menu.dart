@@ -389,9 +389,14 @@ class NavigationMenuState extends State<NavigationMenu> {
     if (box != null) {
       Offset globalPosition = box.localToGlobal(Offset.zero);
       Size size = box.size;
+      // The popover adds the screen's safe area to every margin. left and top
+      // here are absolute, so take it off again. Read from the view, as a
+      // SafeArea above the menu can zero MediaQuery here.
+      final pad = MediaQueryData.fromView(View.of(context)).padding;
       return EdgeInsets.only(
-          left: globalPosition.dx,
-          top: globalPosition.dy + size.height,
+          left: (globalPosition.dx - pad.left).clamp(0.0, double.infinity),
+          top: (globalPosition.dy + size.height - pad.top)
+              .clamp(0.0, double.infinity),
           right: 8,
           bottom: 8);
     }
