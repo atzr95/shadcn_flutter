@@ -393,6 +393,14 @@ class _ResizableTableState extends State<ResizableTable> {
     }
   }
 
+  @override
+  void dispose() {
+    _hoverNotifier.dispose();
+    _hoveredCellNotifier.dispose();
+    _dragNotifier.dispose();
+    super.dispose();
+  }
+
   void _initResizerRows() {
     _cells = [];
     for (int r = 0; r < widget.rows.length; r++) {
@@ -1391,6 +1399,12 @@ class _TableState extends State<Table> {
         widget.defaultRowHeight != oldWidget.defaultRowHeight) {
       _initSizes();
     }
+  }
+
+  @override
+  void dispose() {
+    _hoveredCellNotifier.dispose();
+    super.dispose();
   }
 
   // ponytail: like Flutter's Table, a size map edited in place is not

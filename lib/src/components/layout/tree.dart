@@ -1090,6 +1090,8 @@ class TreeItemView extends StatefulWidget {
 
 class _TreeItemViewState extends State<TreeItemView> {
   late FocusNode _focusNode;
+  // created only when widget.focusNode is null; disposed with this state
+  FocusNode? _ownedFocusNode;
   final WidgetStatesController _statesController = WidgetStatesController();
 
   TreeNodeData? _data;
@@ -1097,7 +1099,7 @@ class _TreeItemViewState extends State<TreeItemView> {
   @override
   void initState() {
     super.initState();
-    _focusNode = widget.focusNode ?? FocusNode();
+    _focusNode = widget.focusNode ?? (_ownedFocusNode = FocusNode());
     _focusNode.addListener(_onFocusChanged);
   }
 
@@ -1105,8 +1107,8 @@ class _TreeItemViewState extends State<TreeItemView> {
   void didUpdateWidget(covariant TreeItemView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusNode != oldWidget.focusNode) {
-      oldWidget.focusNode?.removeListener(_onFocusChanged);
-      _focusNode = widget.focusNode ?? FocusNode();
+      _focusNode.removeListener(_onFocusChanged);
+      _focusNode = widget.focusNode ?? (_ownedFocusNode ??= FocusNode());
       _focusNode.addListener(_onFocusChanged);
     }
   }
@@ -1114,6 +1116,8 @@ class _TreeItemViewState extends State<TreeItemView> {
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChanged);
+    _ownedFocusNode?.dispose();
+    _statesController.dispose();
     super.dispose();
   }
 
