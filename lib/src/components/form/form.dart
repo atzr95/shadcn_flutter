@@ -963,6 +963,21 @@ class FormEntryState extends State<FormEntry> {
   }
 
   @override
+  void didUpdateWidget(covariant FormEntry oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final state = _controller?._attachedInputs[widget.key];
+    if (widget.validator != oldWidget.validator && state != null) {
+      // Swap the stored validator so submit and dependent revalidation use the
+      // new one. ponytail: no re-run here: inline closures and non-const mode
+      // sets compare unequal on every rebuild, so re-running would validate
+      // (maybe async) per rebuild and flip untouched fields to `changed`.
+      // The shown error refreshes on the next value change or submit.
+      _controller!._attachedInputs[widget.key] =
+          FormValueState(value: state.value, validator: widget.validator);
+    }
+  }
+
+  @override
   void dispose() {
     _controller?.removeListener(_onControllerChanged);
     _controller?.detach(widget.key);
