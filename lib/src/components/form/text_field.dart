@@ -17,6 +17,9 @@ class TextField extends StatefulWidget {
   final Widget? trailing;
   final EdgeInsetsGeometry? padding;
   final ValueChanged<String>? onSubmitted;
+
+  /// Called once each time the field loses focus, which includes the default
+  /// Done (unfocus) and Next (move focus) keyboard actions.
   final VoidCallback? onEditingComplete;
   final FocusNode? focusNode;
   final VoidCallback? onTap;
@@ -294,7 +297,9 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
                     onTap: widget.onTap,
                     focusNode: _focusNode,
                     onSubmitted: widget.onSubmitted,
-                    onEditingComplete: widget.onEditingComplete,
+                    // onEditingComplete is not passed: _onFocusChanged fires it
+                    // once on blur, and leaving it null keeps the default
+                    // Done (unfocus) / Next (nextFocus) behavior.
                     undoController: _undoHistoryController,
                     textInputAction: widget.textInputAction,
                     autofillHints: widget.autofillHints,
