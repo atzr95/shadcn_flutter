@@ -178,7 +178,12 @@ class PopoverOverlayHandler extends OverlayHandler {
                             return animationCompleter.future;
                           },
                         );
-                        return popoverAnchor;
+                        // A closing popover takes no taps, so a quick double
+                        // tap cannot run a menu action twice.
+                        return IgnorePointer(
+                          ignoring: isClosed.value,
+                          child: popoverAnchor,
+                        );
                       });
                 }),
           ),
