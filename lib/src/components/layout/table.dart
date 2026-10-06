@@ -378,11 +378,17 @@ class _ResizableTableState extends State<ResizableTable> {
   final ValueNotifier<_HoveredLine?> _hoverNotifier = ValueNotifier(null);
   final ValueNotifier<_HoveredCell?> _hoveredCellNotifier = ValueNotifier(null);
   final ValueNotifier<_HoveredLine?> _dragNotifier = ValueNotifier(null);
+  // Replaced only when the controller changes, so a rebuild for a scroll
+  // offset change does not force RawTableLayout to relayout.
+  late TableSizeSupplier _widthSupplier;
+  late TableSizeSupplier _heightSupplier;
 
   @override
   void initState() {
     super.initState();
     _initResizerRows();
+    _initSizes();
+    widget.controller.addListener(_initSizes);
   }
 
   @override
@@ -391,10 +397,16 @@ class _ResizableTableState extends State<ResizableTable> {
     if (!listEquals(widget.rows, oldWidget.rows)) {
       _initResizerRows();
     }
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller.removeListener(_initSizes);
+      widget.controller.addListener(_initSizes);
+      _initSizes();
+    }
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_initSizes);
     _hoverNotifier.dispose();
     _hoveredCellNotifier.dispose();
     _dragNotifier.dispose();
@@ -455,6 +467,12 @@ class _ResizableTableState extends State<ResizableTable> {
     return FixedTableSize(widget.controller.getRowHeight(index));
   }
 
+  // New closures make RawTableLayout relayout with the new sizes.
+  void _initSizes() {
+    _widthSupplier = (index) => _width(index);
+    _heightSupplier = (index) => _height(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     ResizableTableTheme? resizableTableTheme =
@@ -501,12 +519,8 @@ class _ResizableTableState extends State<ResizableTable> {
                   frozenColumn: widget.frozenCells?.testColumn,
                   frozenRow: widget.frozenCells?.testRow,
                   viewportSize: widget.viewportSize,
-                  width: (index) {
-                    return _width(index);
-                  },
-                  height: (index) {
-                    return _height(index);
-                  },
+                  width: _widthSupplier,
+                  height: _heightSupplier,
                   children: children,
                 );
               }),

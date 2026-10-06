@@ -142,5 +142,25 @@ void main() {
       const frozen = FrozenTableData(frozenColumns: [TableRef(0)]);
       expect(await needsLayoutAfterScroll(tester, frozen: frozen), isTrue);
     });
+
+    testWidgets('skips relayout in ResizableTable, resize still applies',
+        (tester) async {
+      final controller = ResizableTableController(
+          defaultColumnWidth: 50, defaultRowHeight: 20);
+      Widget table(double offset) => _app(ResizableTable(
+            controller: controller,
+            horizontalOffset: offset,
+            rows: const [
+              TableRow(cells: [TableCell(child: Text('a'))]),
+            ],
+          ));
+      await tester.pumpWidget(table(0));
+      await tester.pumpWidget(table(10), phase: EnginePhase.build);
+      expect(_table(tester).debugNeedsLayout, isFalse);
+      await tester.pump();
+      controller.resizeColumn(0, 80);
+      await tester.pump();
+      expect(_table(tester).columnWidths, [80]);
+    });
   });
 }
