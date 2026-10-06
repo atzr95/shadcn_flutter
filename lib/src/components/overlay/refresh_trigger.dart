@@ -254,8 +254,23 @@ class RefreshTriggerState extends State<RefreshTrigger>
       });
     } else if (notification is ScrollUpdateNotification) {
       var delta = notification.scrollDelta;
+      // A pull only counts from the edge the indicator sits on; scrolling
+      // back toward it from mid-list is plain scrolling. It must also be a
+      // drag: a fling that bounces off the edge is not a pull.
+      final metrics = notification.metrics;
+      final atEdge =
+          widget.reverse ? metrics.extentAfter == 0 : metrics.extentBefore == 0;
       if (delta != null) {
-        if (_stage == TriggerStage.pulling) {
+        if (_stage == TriggerStage.pulling &&
+            !atEdge &&
+            _currentExtent < widget.minExtent) {
+          // Scrolled away from the edge before reaching the threshold.
+          setState(() {
+            _scrolling = false;
+            _stage = TriggerStage.idle;
+            _currentExtent = 0;
+          });
+        } else if (_stage == TriggerStage.pulling) {
           bool forward = widget.reverse ? delta > 0 : delta < 0;
           if ((forward && _userScrollDirection == ScrollDirection.forward) ||
               (!forward && _userScrollDirection == ScrollDirection.reverse)) {
@@ -273,6 +288,8 @@ class RefreshTriggerState extends State<RefreshTrigger>
             }
           }
         } else if (_stage == TriggerStage.idle &&
+            atEdge &&
+            notification.dragDetails != null &&
             (widget.reverse ? delta > 0 : delta < 0)) {
           setState(() {
             _currentExtent = 0;
@@ -285,6 +302,13 @@ class RefreshTriggerState extends State<RefreshTrigger>
       _userScrollDirection = notification.direction;
     } else if (notification is OverscrollNotification) {
       if (_stage == TriggerStage.idle) {
+        // Only a drag past the indicator's edge is a pull.
+        if (notification.dragDetails == null ||
+            (widget.reverse
+                ? notification.overscroll <= 0
+                : notification.overscroll >= 0)) {
+          return false;
+        }
         setState(() {
           _currentExtent = 0;
           _scrolling = true;
