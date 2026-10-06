@@ -821,7 +821,7 @@ class ShadcnPointArcTween extends Tween<Offset> {
     if (_dirty) {
       _initialize();
     }
-    return _beginAngle;
+    return _endAngle;
   }
 
   double? _endAngle;
