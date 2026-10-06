@@ -71,6 +71,21 @@ void main() {
     expect(table.getMaxIntrinsicHeight(200), table.size.height);
   });
 
+  testWidgets('loose flex rows share the min height', (tester) async {
+    await tester.pumpWidget(_app(const SizedBox(
+      width: 100,
+      height: 200,
+      child: Table(
+        defaultRowHeight: FlexTableSize(fit: FlexFit.loose),
+        rows: [
+          TableRow(cells: [TableCell(child: Text('a'))]),
+          TableRow(cells: [TableCell(child: Text('b'))]),
+        ],
+      ),
+    )));
+    expect(_table(tester).rowHeights, [100, 100]);
+  });
+
   test('getOffset and size are running sums of the tracks', () {
     final result = TableLayoutResult(
       columnWidths: [10, 20, 30],
