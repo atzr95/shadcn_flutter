@@ -89,6 +89,84 @@ void main() {
     expect(_text('action').hitTestable(), findsOneWidget);
   });
 
+  testWidgets('popping a card dialog by code closes all its sheets',
+      (tester) async {
+    late BuildContext dialogContext;
+    final results = <String, Object?>{};
+    await _pump(tester, _app(_pageWithCardDialog((context) {
+      dialogContext = context;
+      // Two stacked typed sheets, the lower one not dismissible. The dialog's
+      // int result must reach neither.
+      openSheet<String>(
+        context: context,
+        position: OverlayPosition.bottom,
+        barrierDismissible: false,
+        builder: (sheetContext) => GestureDetector(
+          onTap: () => openSheet<String>(
+            context: sheetContext,
+            position: OverlayPosition.bottom,
+            builder: (_) => const SizedBox(height: 100, child: Text('inner')),
+          ).then((v) => results['inner'] = v),
+          child: const SizedBox(height: 300, child: Text('outer')),
+        ),
+      ).then((v) => results['outer'] = v);
+    })));
+    await tester.tap(_text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(_text('action'));
+    await tester.pumpAndSettle();
+    await tester.tap(_text('outer'));
+    await tester.pumpAndSettle();
+    expect(_text('inner').hitTestable(), findsOneWidget);
+
+    Navigator.pop(dialogContext, 42);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(_text('outer'), findsNothing);
+    expect(_text('inner'), findsNothing);
+    expect(results, {'outer': null, 'inner': null});
+    expect(_text('open').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('back while a finger drags a drawer still closes it',
+      (tester) async {
+    _useSize(tester, const Size(400, 800));
+    bool closed = false;
+    await _pump(
+        tester,
+        _app(Scaffold(
+          child: Builder(
+            builder: (context) => GestureDetector(
+              onTap: () => openDrawer(
+                context: context,
+                position: OverlayPosition.bottom,
+                builder: (_) =>
+                    const SizedBox(height: 300, child: Text('drawer')),
+              ).then((_) => closed = true),
+              child: const Text('open'),
+            ),
+          ),
+        )));
+    await tester.tap(_text('open'));
+    await tester.pumpAndSettle();
+
+    final gesture =
+        await tester.startGesture(tester.getCenter(_text('drawer')));
+    for (var i = 0; i < 5; i++) {
+      await gesture.moveBy(const Offset(0, 4)); // past the touch slop
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await tester.binding.handlePopRoute(); // close() starts mid-drag
+    for (var i = 0; i < 5; i++) {
+      await gesture.moveBy(const Offset(0, -4)); // the finger keeps going
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(closed, isTrue);
+    expect(_text('drawer'), findsNothing);
+  });
+
   testWidgets('bottom sheet sits above the keyboard', (tester) async {
     _useSize(tester, const Size(400, 800));
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
