@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
@@ -61,6 +62,26 @@ void main() {
     await tester.tap(_text('10'));
 
     expect(changed, CalendarValue.single(date));
+  });
+
+  testWidgets('calendar month header is tall enough for its label',
+      (tester) async {
+    // Large system text makes the label taller than the old fixed 32px
+    // header (16px after padding), which clipped descenders like "y".
+    await tester.pumpWidget(MediaQuery(
+      data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+      child: _app(DatePickerDialog(
+        initialView: CalendarView(2026, 1),
+        initialViewType: CalendarViewType.date,
+        selectionMode: CalendarSelectionMode.single,
+      )),
+    ));
+    await tester.pumpAndSettle();
+    final label = tester.allRenderObjects
+        .whereType<RenderParagraph>()
+        .firstWhere((p) => p.text.toPlainText() == 'January 2026');
+    expect(label.size.height,
+        greaterThanOrEqualTo(label.getMaxIntrinsicHeight(double.infinity)));
   });
 
   testWidgets('DatePicker opens on the selected date\'s month', (tester) async {

@@ -148,7 +148,9 @@ class _DatePickerDialogState extends State<DatePickerDialog> {
                               .small()
                               .medium()
                               .center(),
-                        ).sized(height: theme.scaling * 32),
+                          // Min, not fixed: 8px padding left 16px for the
+                          // label and clipped descenders ("January").
+                        ).constrained(minHeight: theme.scaling * 32),
                       ),
                       if (_viewType == CalendarViewType.date &&
                           viewMode == CalendarSelectionMode.range)
@@ -216,7 +218,7 @@ class _DatePickerDialogState extends State<DatePickerDialog> {
                                 .small()
                                 .medium()
                                 .center(),
-                          ).sized(height: theme.scaling * 32),
+                          ).constrained(minHeight: theme.scaling * 32),
                         ),
                         SizedBox(
                           width: theme.scaling * 16,
@@ -350,7 +352,7 @@ class _DatePickerDialogState extends State<DatePickerDialog> {
                       .small()
                       .medium()
                       .center(),
-                ).sized(height: theme.scaling * 32),
+                ).constrained(minHeight: theme.scaling * 32),
               ),
               SizedBox(
                 width: theme.scaling * 16,
