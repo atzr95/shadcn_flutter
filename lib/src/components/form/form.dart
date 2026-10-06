@@ -1124,6 +1124,11 @@ class FormController extends ChangeNotifier {
           }
           changed = true;
         }
+      } else if (_validity[key] != null) {
+        // The validator was removed (FormEntry.didUpdateWidget); drop its
+        // stale result so it no longer blocks submit.
+        _validity[key] = null;
+        changed = true;
       }
     }
     if (changed) {
@@ -1416,6 +1421,9 @@ extension FormExtension on BuildContext {
         var formKey = formEntry.widget.key;
         // null is a valid "no value" for any key (getFormValue returns T?).
         // _unset never equals a value, so the first report always counts.
+        // ponytail: null is accepted from a reporter of any type, so a second
+        // reporter of another type under one FormEntry can clear its value.
+        // Checking the reporter's static T would reject dynamic-typed reporters.
         if ((value == null || formKey.isInstanceOf(value)) &&
             formEntry._cachedValue != value) {
           formEntry._cachedValue = value;

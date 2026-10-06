@@ -117,6 +117,31 @@ void main() {
     expect(result.errors.keys, contains(_name));
   });
 
+  testWidgets('removing a FormEntry validator clears its error on submit',
+      (tester) async {
+    var submitted = false;
+    late BuildContext formContext;
+    Widget build(Validator<String>? validator) => _app(Form(
+          onSubmit: (_, __) => submitted = true,
+          child: Builder(builder: (context) {
+            formContext = context;
+            return FormField<String>(
+              key: _name,
+              label: const Text('Name'),
+              validator: validator,
+              child: const TextField(),
+            );
+          }),
+        ));
+
+    await tester.pumpWidget(build(const NotEmptyValidator()));
+    await tester.pumpWidget(build(null));
+
+    final result = formContext.submitForm() as SubmissionResult;
+    expect(result.errors, isEmpty);
+    expect(submitted, isTrue);
+  });
+
   testWidgets('onEditingComplete fires once and Done still unfocuses',
       (tester) async {
     var count = 0;
