@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class Pagination extends StatelessWidget {
@@ -30,69 +32,50 @@ class Pagination extends StatelessWidget {
 
   bool get hasPrevious => page > 1;
   bool get hasNext => page < totalPages;
-  Iterable<int> get pages sync* {
-    if (totalPages <= maxPages) {
-      yield* List.generate(totalPages, (index) => index + 1);
-    } else {
-      final start = page - maxPages ~/ 2;
-      final end = page + maxPages ~/ 2;
-      if (start < 1) {
-        yield* List.generate(maxPages, (index) => index + 1);
-      } else if (end > totalPages) {
-        yield* List.generate(
-            maxPages, (index) => totalPages - maxPages + index + 1);
-      } else {
-        yield* List.generate(maxPages, (index) => start + index);
-      }
-    }
-  }
 
+  /// The page numbers shown as buttons: [firstShownPage]..[lastShownPage].
+  Iterable<int> get pages => Iterable.generate(
+      lastShownPage - firstShownPage + 1, (index) => firstShownPage + index);
+
+  /// Start of the window of up to [maxPages] buttons around [page], shifted
+  /// to stay inside 1..[totalPages]. [pages], [lastShownPage] and the "more"
+  /// buttons all derive from it, so they always agree (also for an even
+  /// [maxPages]).
   int get firstShownPage {
-    if (totalPages <= maxPages) {
-      return 1;
-    } else {
-      final start = page - maxPages ~/ 2;
-      return start < 1 ? 1 : start;
-    }
+    final int maxFirst = max(1, totalPages - maxPages + 1);
+    return (page - maxPages ~/ 2).clamp(1, maxFirst);
   }
 
-  int get lastShownPage {
-    if (totalPages <= maxPages) {
-      return totalPages;
-    } else {
-      final end = page + maxPages ~/ 2;
-      return end > totalPages ? totalPages : end;
-    }
-  }
+  int get lastShownPage => min(totalPages, firstShownPage + maxPages - 1);
 
   bool get hasMorePreviousPages => firstShownPage > 1;
   bool get hasMoreNextPages => lastShownPage < totalPages;
 
-  Widget _buildPreviousLabel(ShadcnLocalizations localizations) {
+  Widget _buildPreviousLabel(ShadcnLocalizations localizations, IconData icon) {
     if (showLabel) {
       return GhostButton(
         onPressed: hasPrevious ? () => onPageChanged(page - 1) : null,
-        leading: const Icon(RadixIcons.chevronLeft).iconXSmall(),
+        leading: Icon(icon).iconXSmall(),
         child: Text(localizations.buttonPrevious),
       );
     }
     return GhostButton(
       onPressed: hasPrevious ? () => onPageChanged(page - 1) : null,
-      child: const Icon(RadixIcons.chevronLeft).iconXSmall(),
+      child: Icon(icon).iconXSmall(),
     );
   }
 
-  Widget _buildNextLabel(ShadcnLocalizations localizations) {
+  Widget _buildNextLabel(ShadcnLocalizations localizations, IconData icon) {
     if (showLabel) {
       return GhostButton(
         onPressed: hasNext ? () => onPageChanged(page + 1) : null,
-        trailing: const Icon(RadixIcons.chevronRight).iconXSmall(),
+        trailing: Icon(icon).iconXSmall(),
         child: Text(localizations.buttonNext),
       );
     }
     return GhostButton(
       onPressed: hasNext ? () => onPageChanged(page + 1) : null,
-      child: const Icon(RadixIcons.chevronRight).iconXSmall(),
+      child: Icon(icon).iconXSmall(),
     );
   }
 
@@ -101,13 +84,18 @@ class Pagination extends StatelessWidget {
     final theme = Theme.of(context);
     final scaling = theme.scaling;
     ShadcnLocalizations localizations = ShadcnLocalizations.of(context);
+    // The Row mirrors in RTL, so "previous" sits on the right and its chevron
+    // must point right (and "next" left).
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final previousIcon = rtl ? RadixIcons.chevronRight : RadixIcons.chevronLeft;
+    final nextIcon = rtl ? RadixIcons.chevronLeft : RadixIcons.chevronRight;
     return IntrinsicHeight(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!hidePreviousOnFirstPage || hasPrevious)
-            _buildPreviousLabel(localizations),
+            _buildPreviousLabel(localizations, previousIcon),
           if (hasMorePreviousPages) ...[
             if (showSkipToFirstPage && firstShownPage - 1 > 1)
               GhostButton(
@@ -147,7 +135,8 @@ class Pagination extends StatelessWidget {
                 child: Text('$totalPages'),
               ),
           ],
-          if (!hideNextOnLastPage || hasNext) _buildNextLabel(localizations),
+          if (!hideNextOnLastPage || hasNext)
+            _buildNextLabel(localizations, nextIcon),
         ],
       ).gap(4 * scaling),
     );
