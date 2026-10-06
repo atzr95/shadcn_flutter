@@ -10,8 +10,11 @@ class ShadcnLocalizationsDelegate
       ShadcnLocalizationsDelegate();
   const ShadcnLocalizationsDelegate();
 
+  /// Every locale is supported with the English strings as a fallback, so
+  /// `Localizations.of(context, ShadcnLocalizations)` is never null. An app
+  /// delegate listed before this one still wins for the locales it covers.
   @override
-  bool isSupported(Locale locale) => locale.languageCode == 'en';
+  bool isSupported(Locale locale) => true;
 
   @override
   Future<ShadcnLocalizations> load(Locale locale) {
