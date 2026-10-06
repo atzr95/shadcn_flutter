@@ -88,6 +88,17 @@ void main() {
     expect(result.size, const Size(60, 12));
   });
 
+  testWidgets('a size map edited in place still relayouts', (tester) async {
+    final widths = <int, TableSize>{0: const FixedTableSize(50)};
+    Widget table() => _app(Table(columnWidths: widths, rows: const [
+          TableRow(cells: [TableCell(child: Text('a'))]),
+        ]));
+    await tester.pumpWidget(table());
+    widths[0] = const FixedTableSize(120);
+    await tester.pumpWidget(table());
+    expect(_table(tester).columnWidths, [120]);
+  });
+
   group('scroll offset change', () {
     Widget table(double offset, {FrozenTableData? frozen}) => _app(Table(
           horizontalOffset: offset,

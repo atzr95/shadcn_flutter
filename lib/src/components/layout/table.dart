@@ -1379,6 +1379,10 @@ class _TableState extends State<Table> {
   // offset change) does not force RawTableLayout to relayout.
   late TableSizeSupplier _width;
   late TableSizeSupplier _height;
+  // Copies of the size maps the suppliers read, so a map edited in place
+  // is still seen as a change.
+  Map<int, TableSize>? _columnWidths;
+  Map<int, TableSize>? _rowHeights;
 
   @override
   void initState() {
@@ -1393,8 +1397,8 @@ class _TableState extends State<Table> {
     if (!listEquals(widget.rows, oldWidget.rows)) {
       _initCells();
     }
-    if (!mapEquals(widget.columnWidths, oldWidget.columnWidths) ||
-        !mapEquals(widget.rowHeights, oldWidget.rowHeights) ||
+    if (!mapEquals(widget.columnWidths, _columnWidths) ||
+        !mapEquals(widget.rowHeights, _rowHeights) ||
         widget.defaultColumnWidth != oldWidget.defaultColumnWidth ||
         widget.defaultRowHeight != oldWidget.defaultRowHeight) {
       _initSizes();
@@ -1407,11 +1411,13 @@ class _TableState extends State<Table> {
     super.dispose();
   }
 
-  // ponytail: like Flutter's Table, a size map edited in place is not
-  // noticed; pass a new map. TableSize has no ==, so only const sizes match.
+  // ponytail: TableSize has no ==, so only const (or the same) size
+  // instances match; a non-const size relayouts on every rebuild.
   void _initSizes() {
-    final columnWidths = widget.columnWidths;
-    final rowHeights = widget.rowHeights;
+    final columnWidths = _columnWidths =
+        widget.columnWidths == null ? null : Map.of(widget.columnWidths!);
+    final rowHeights = _rowHeights =
+        widget.rowHeights == null ? null : Map.of(widget.rowHeights!);
     final defaultColumnWidth = widget.defaultColumnWidth;
     final defaultRowHeight = widget.defaultRowHeight;
     _width = (index) => columnWidths?[index] ?? defaultColumnWidth;
