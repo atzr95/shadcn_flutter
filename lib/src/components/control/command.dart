@@ -109,16 +109,29 @@ class _CommandState extends State<Command> {
     }
   }
 
+  // One request per query: rebuilds (theme, keyboard, parent) reuse it
+  // instead of restarting the search.
+  late Stream<List<Widget>> _results;
+
   @override
   void initState() {
     super.initState();
+    _results = _request(context, null);
     _controller.addListener(() {
       String? newQuery = _controller.text;
       if (newQuery.isEmpty) newQuery = null;
       if (newQuery != query.value) {
+        _results = _request(context, newQuery);
         query.value = newQuery;
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    query.dispose();
+    super.dispose();
   }
 
   @override
@@ -168,7 +181,7 @@ class _CommandState extends State<Command> {
                     valueListenable: query,
                     builder: (context, value, child) {
                       return StreamBuilder(
-                        stream: _request(context, value),
+                        stream: _results,
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             List<Widget> items = List.of(snapshot.data!);
@@ -265,6 +278,12 @@ class _CommandItemState extends State<CommandItem> {
     _focusNode.addListener(() {
       setState(() {});
     });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
