@@ -214,8 +214,8 @@ class _DrawerWrapperState extends State<DrawerWrapper>
 
   // Settles the drawer after a drag. [velocity] is in px/s along the opening
   // direction: a fling decides, otherwise whichever half it was let go in.
-  void _dragEnd(BuildContext context, ControlledAnimation? controlled,
-      double velocity) {
+  void _dragEnd(
+      BuildContext context, ControlledAnimation? controlled, double velocity) {
     if (controlled == null) {
       return;
     }
@@ -242,8 +242,8 @@ class _DrawerWrapperState extends State<DrawerWrapper>
       case OverlayPosition.left:
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onHorizontalDragUpdate: (details) => _dragBy(controlled,
-              details.primaryDelta! * sign, getSize(context).width),
+          onHorizontalDragUpdate: (details) => _dragBy(
+              controlled, details.primaryDelta! * sign, getSize(context).width),
           onHorizontalDragEnd: (details) => _dragEnd(
               context, controlled, (details.primaryVelocity ?? 0) * sign),
           child: Row(
@@ -1165,8 +1165,10 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
                 widget.useSafeArea && widget.position == OverlayPosition.left;
             bool insetRight =
                 widget.useSafeArea && widget.position == OverlayPosition.right;
-            MediaQueryData mediaQueryData = MediaQuery.of(context);
-            EdgeInsets padding = mediaQueryData.padding;
+            EdgeInsets padding = MediaQuery.paddingOf(context);
+            // This overlay spans the whole page (Scaffold only pads its body),
+            // so keep the drawer above the keyboard here.
+            double keyboard = MediaQuery.viewInsetsOf(context).bottom;
             if (extraSize == null) {
               additionalSize = Size.zero;
               additionalOffset = Offset.zero;
@@ -1199,19 +1201,12 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
                 ),
                 barrier,
                 Positioned.fill(
-                  child: MediaQuery(
-                    data: widget.useSafeArea
-                        ? mediaQueryData.removePadding(
-                            removeTop: true,
-                            removeBottom: true,
-                            removeLeft: true,
-                            removeRight: true,
-                          )
-                        : mediaQueryData,
+                  child: _ConsumedMediaQuery(
+                    removePadding: widget.useSafeArea,
                     child: Padding(
                       padding: EdgeInsets.only(
                         top: padTop ? padding.top : 0,
-                        bottom: padBottom ? padding.bottom : 0,
+                        bottom: max(padBottom ? padding.bottom : 0.0, keyboard),
                         left: padLeft ? padding.left : 0,
                         right: padRight ? padding.right : 0,
                       ),
@@ -1254,6 +1249,31 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
         ),
       ),
     );
+  }
+}
+
+/// Gives drawer content the MediaQuery minus what [DrawerEntryWidget]
+/// already applied: the bottom keyboard inset, plus the safe area when
+/// [removePadding]. Only this widget depends on the whole MediaQuery, so
+/// unrelated changes (text scale, brightness, ...) skip the drawer content.
+class _ConsumedMediaQuery extends StatelessWidget {
+  final bool removePadding;
+  final Widget child;
+
+  const _ConsumedMediaQuery({required this.removePadding, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    var data = MediaQuery.of(context).removeViewInsets(removeBottom: true);
+    if (removePadding) {
+      data = data.removePadding(
+        removeTop: true,
+        removeBottom: true,
+        removeLeft: true,
+        removeRight: true,
+      );
+    }
+    return MediaQuery(data: data, child: child);
   }
 }
 
