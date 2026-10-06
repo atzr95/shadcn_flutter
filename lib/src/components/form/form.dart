@@ -155,7 +155,7 @@ class NotValidator<T> extends Validator<T> {
   @override
   FutureOr<ValidationResult?> validate(
       BuildContext context, T? value, FormValidationMode state) {
-    var localizations = Localizations.of(context, ShadcnLocalizations);
+    var localizations = ShadcnLocalizations.of(context);
     var result = validator.validate(context, value, state);
     if (result is Future<ValidationResult?>) {
       return result.then((value) {
@@ -252,7 +252,7 @@ class NonNullValidator<T> extends Validator<T> {
   FutureOr<ValidationResult?> validate(
       BuildContext context, T? value, FormValidationMode state) {
     if (value == null) {
-      var localizations = Localizations.of(context, ShadcnLocalizations);
+      var localizations = ShadcnLocalizations.of(context);
       return InvalidResult(message ?? localizations.formNotEmpty, state: state);
     }
     return null;
@@ -274,7 +274,7 @@ class NotEmptyValidator extends NonNullValidator<String> {
   FutureOr<ValidationResult?> validate(
       BuildContext context, String? value, FormValidationMode state) {
     if (value == null || value.isEmpty) {
-      var localizations = Localizations.of(context, ShadcnLocalizations);
+      var localizations = ShadcnLocalizations.of(context);
       return InvalidResult(message ?? localizations.formNotEmpty, state: state);
     }
     return null;
@@ -303,8 +303,7 @@ class LengthValidator extends Validator<String> {
     if (value == null) {
       return null;
     }
-    ShadcnLocalizations localizations =
-        Localizations.of(context, ShadcnLocalizations);
+    var localizations = ShadcnLocalizations.of(context);
     if (min != null && value.length < min!) {
       return InvalidResult(message ?? localizations.formLengthLessThan(min!),
           state: state);
@@ -329,6 +328,25 @@ class LengthValidator extends Validator<String> {
 }
 
 enum CompareType { greater, greaterOrEqual, less, lessOrEqual, equal }
+
+// Default message for CompareWith/CompareTo. The localized compare strings
+// only format numbers and there is no "equal to" string, so anything else
+// falls back to invalidValue.
+String _compareMessage(
+    ShadcnLocalizations localizations, CompareType type, Object? value) {
+  if (value is! num) {
+    return localizations.invalidValue;
+  }
+  final number = value.toDouble();
+  return switch (type) {
+    CompareType.greater => localizations.formGreaterThan(number),
+    CompareType.greaterOrEqual =>
+      localizations.formGreaterThanOrEqualTo(number),
+    CompareType.less => localizations.formLessThan(number),
+    CompareType.lessOrEqual => localizations.formLessThanOrEqualTo(number),
+    CompareType.equal => localizations.invalidValue,
+  };
+}
 
 class CompareWith<T extends Comparable<T>> extends Validator<T> {
   final FormKey<T> key;
@@ -362,7 +380,7 @@ class CompareWith<T extends Comparable<T>> extends Validator<T> {
   @override
   FutureOr<ValidationResult?> validate(
       BuildContext context, T? value, FormValidationMode state) {
-    var localizations = Localizations.of(context, ShadcnLocalizations);
+    var localizations = ShadcnLocalizations.of(context);
     var otherValue = context.getFormValue(key);
     if (otherValue == null) {
       return InvalidResult(message ?? localizations.invalidValue, state: state);
@@ -372,34 +390,35 @@ class CompareWith<T extends Comparable<T>> extends Validator<T> {
       case CompareType.greater:
         if (compare <= 0) {
           return InvalidResult(
-              message ?? localizations.formGreaterThan(otherValue),
+              message ?? _compareMessage(localizations, type, otherValue),
               state: state);
         }
         break;
       case CompareType.greaterOrEqual:
         if (compare < 0) {
           return InvalidResult(
-              message ?? localizations.formGreaterThanOrEqualTo(otherValue),
+              message ?? _compareMessage(localizations, type, otherValue),
               state: state);
         }
         break;
       case CompareType.less:
         if (compare >= 0) {
           return InvalidResult(
-              message ?? localizations.formLessThan(otherValue),
+              message ?? _compareMessage(localizations, type, otherValue),
               state: state);
         }
         break;
       case CompareType.lessOrEqual:
         if (compare > 0) {
           return InvalidResult(
-              message ?? localizations.formLessThanOrEqualTo(otherValue),
+              message ?? _compareMessage(localizations, type, otherValue),
               state: state);
         }
         break;
       case CompareType.equal:
         if (compare != 0) {
-          return InvalidResult(message ?? localizations.formEqualTo(otherValue),
+          return InvalidResult(
+              message ?? _compareMessage(localizations, type, otherValue),
               state: state);
         }
         break;
@@ -448,27 +467,27 @@ class SafePasswordValidator extends Validator<String> {
     if (requireDigit && !RegExp(r'\d').hasMatch(value)) {
       return InvalidResult(
           message ??
-              Localizations.of(context, ShadcnLocalizations).formPasswordDigits,
+              ShadcnLocalizations.of(context).formPasswordDigits,
           state: state);
     }
     if (requireLowercase && !RegExp(r'[a-z]').hasMatch(value)) {
       return InvalidResult(
           message ??
-              Localizations.of(context, ShadcnLocalizations)
+              ShadcnLocalizations.of(context)
                   .formPasswordLowercase,
           state: state);
     }
     if (requireUppercase && !RegExp(r'[A-Z]').hasMatch(value)) {
       return InvalidResult(
           message ??
-              Localizations.of(context, ShadcnLocalizations)
+              ShadcnLocalizations.of(context)
                   .formPasswordUppercase,
           state: state);
     }
     if (requireSpecialChar && !RegExp(r'[\W_]').hasMatch(value)) {
       return InvalidResult(
           message ??
-              Localizations.of(context, ShadcnLocalizations)
+              ShadcnLocalizations.of(context)
                   .formPasswordSpecial,
           state: state);
     }
@@ -508,16 +527,16 @@ class MinValidator<T extends num> extends Validator<T> {
       if (value < min) {
         return InvalidResult(
             message ??
-                Localizations.of(context, ShadcnLocalizations)
-                    .formGreaterThanOrEqualTo(min),
+                ShadcnLocalizations.of(context)
+                    .formGreaterThanOrEqualTo(min.toDouble()),
             state: state);
       }
     } else {
       if (value <= min) {
         return InvalidResult(
             message ??
-                Localizations.of(context, ShadcnLocalizations)
-                    .formGreaterThan(min),
+                ShadcnLocalizations.of(context)
+                    .formGreaterThan(min.toDouble()),
             state: state);
       }
     }
@@ -554,16 +573,16 @@ class MaxValidator<T extends num> extends Validator<T> {
       if (value > max) {
         return InvalidResult(
             message ??
-                Localizations.of(context, ShadcnLocalizations)
-                    .formLessThanOrEqualTo(max),
+                ShadcnLocalizations.of(context)
+                    .formLessThanOrEqualTo(max.toDouble()),
             state: state);
       }
     } else {
       if (value >= max) {
         return InvalidResult(
             message ??
-                Localizations.of(context, ShadcnLocalizations)
-                    .formLessThan(max),
+                ShadcnLocalizations.of(context)
+                    .formLessThan(max.toDouble()),
             state: state);
       }
     }
@@ -602,16 +621,16 @@ class RangeValidator<T extends num> extends Validator<T> {
       if (value < min || value > max) {
         return InvalidResult(
             message ??
-                Localizations.of(context, ShadcnLocalizations)
-                    .formBetweenInclusively(min, max),
+                ShadcnLocalizations.of(context)
+                    .formBetweenInclusively(min.toDouble(), max.toDouble()),
             state: state);
       }
     } else {
       if (value <= min || value >= max) {
         return InvalidResult(
             message ??
-                Localizations.of(context, ShadcnLocalizations)
-                    .formBetweenExclusively(min, max),
+                ShadcnLocalizations.of(context)
+                    .formBetweenExclusively(min.toDouble(), max.toDouble()),
             state: state);
       }
     }
@@ -647,7 +666,7 @@ class RegexValidator extends Validator<String> {
     if (!pattern.hasMatch(value)) {
       return InvalidResult(
           message ??
-              Localizations.of(context, ShadcnLocalizations).invalidValue,
+              ShadcnLocalizations.of(context).invalidValue,
           state: state);
     }
     return null;
@@ -680,7 +699,7 @@ class EmailValidator extends Validator<String> {
     if (!email_validator.EmailValidator.validate(value)) {
       return InvalidResult(
           message ??
-              Localizations.of(context, ShadcnLocalizations).invalidEmail,
+              ShadcnLocalizations.of(context).invalidEmail,
           state: state);
     }
     return null;
@@ -711,7 +730,7 @@ class URLValidator extends Validator<String> {
       Uri.parse(value);
     } on FormatException {
       return InvalidResult(
-          message ?? Localizations.of(context, ShadcnLocalizations).invalidURL,
+          message ?? ShadcnLocalizations.of(context).invalidURL,
           state: state);
     }
     return null;
@@ -758,40 +777,41 @@ class CompareTo<T extends Comparable<T>> extends Validator<T> {
   @override
   FutureOr<ValidationResult?> validate(
       BuildContext context, T? value, FormValidationMode state) {
-    var localizations = Localizations.of(context, ShadcnLocalizations);
+    var localizations = ShadcnLocalizations.of(context);
     var compare = _compare(value, this.value);
     switch (type) {
       case CompareType.greater:
         if (compare <= 0) {
           return InvalidResult(
-              message ?? localizations.formGreaterThan(this.value),
+              message ?? _compareMessage(localizations, type, this.value),
               state: state);
         }
         break;
       case CompareType.greaterOrEqual:
         if (compare < 0) {
           return InvalidResult(
-              message ?? localizations.formGreaterThanOrEqualTo(this.value),
+              message ?? _compareMessage(localizations, type, this.value),
               state: state);
         }
         break;
       case CompareType.less:
         if (compare >= 0) {
           return InvalidResult(
-              message ?? localizations.formLessThan(this.value),
+              message ?? _compareMessage(localizations, type, this.value),
               state: state);
         }
         break;
       case CompareType.lessOrEqual:
         if (compare > 0) {
           return InvalidResult(
-              message ?? localizations.formLessThanOrEqualTo(this.value),
+              message ?? _compareMessage(localizations, type, this.value),
               state: state);
         }
         break;
       case CompareType.equal:
         if (compare != 0) {
-          return InvalidResult(message ?? localizations.formEqualTo(this.value),
+          return InvalidResult(
+              message ?? _compareMessage(localizations, type, this.value),
               state: state);
         }
         break;
