@@ -195,42 +195,57 @@ class _DrawerWrapperState extends State<DrawerWrapper>
         : widget.size;
   }
 
+  // Moves the drawer by [delta] px along its opening direction (negative
+  // closes); past fully open it stretches instead.
+  void _dragBy(ControlledAnimation? controlled, double delta, double extent) {
+    if (controlled == null) {
+      return;
+    }
+    double newValue = controlled.value + delta / extent;
+    if (newValue < 0) {
+      newValue = 0;
+    }
+    if (newValue > 1) {
+      _extraOffset.value += delta / max(_extraOffset.value, 1);
+      newValue = 1;
+    }
+    controlled.value = newValue;
+  }
+
+  // Settles the drawer after a drag. [velocity] is in px/s along the opening
+  // direction: a fling decides, otherwise whichever half it was let go in.
+  void _dragEnd(BuildContext context, ControlledAnimation? controlled,
+      double velocity) {
+    if (controlled == null) {
+      return;
+    }
+    const flingVelocity = 700.0;
+    _extraOffset.forward(0, Curves.easeOut);
+    if (velocity < -flingVelocity ||
+        (velocity <= flingVelocity &&
+            controlled.value + _extraOffset.value < 0.5)) {
+      controlled.forward(0, Curves.easeOut).then((value) {
+        closeDrawer(context);
+      });
+    } else {
+      controlled.forward(1, Curves.easeOut);
+    }
+  }
+
   Widget buildDraggable(BuildContext context, ControlledAnimation? controlled,
       Widget child, ThemeData theme) {
+    // Left/right drawers are placed directionally (start/end), so a drag
+    // toward the screen edge closes them on the mirrored side in RTL.
+    final double sign =
+        Directionality.of(context) == TextDirection.rtl ? -1 : 1;
     switch (widget.position) {
       case OverlayPosition.left:
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onHorizontalDragUpdate: (details) {
-            if (controlled == null) {
-              return;
-            }
-            final size = getSize(context);
-            final increment = details.primaryDelta! / size.width;
-            double newValue = controlled.value + increment;
-            if (newValue < 0) {
-              newValue = 0;
-            }
-            if (newValue > 1) {
-              _extraOffset.value +=
-                  details.primaryDelta! / max(_extraOffset.value, 1);
-              newValue = 1;
-            }
-            controlled.value = newValue;
-          },
-          onHorizontalDragEnd: (details) {
-            if (controlled == null) {
-              return;
-            }
-            _extraOffset.forward(0, Curves.easeOut);
-            if (controlled.value + _extraOffset.value < 0.5) {
-              controlled.forward(0, Curves.easeOut).then((value) {
-                closeDrawer(context);
-              });
-            } else {
-              controlled.forward(1, Curves.easeOut);
-            }
-          },
+          onHorizontalDragUpdate: (details) => _dragBy(controlled,
+              details.primaryDelta! * sign, getSize(context).width),
+          onHorizontalDragEnd: (details) => _dragEnd(
+              context, controlled, (details.primaryVelocity ?? 0) * sign),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -261,36 +276,10 @@ class _DrawerWrapperState extends State<DrawerWrapper>
       case OverlayPosition.right:
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onHorizontalDragUpdate: (details) {
-            if (controlled == null) {
-              return;
-            }
-            final size = getSize(context);
-            final increment = details.primaryDelta! / size.width;
-            double newValue = controlled.value - increment;
-            if (newValue < 0) {
-              newValue = 0;
-            }
-            if (newValue > 1) {
-              _extraOffset.value +=
-                  -details.primaryDelta! / max(_extraOffset.value, 1);
-              newValue = 1;
-            }
-            controlled.value = newValue;
-          },
-          onHorizontalDragEnd: (details) {
-            if (controlled == null) {
-              return;
-            }
-            _extraOffset.forward(0, Curves.easeOut);
-            if (controlled.value + _extraOffset.value < 0.5) {
-              controlled.forward(0, Curves.easeOut).then((value) {
-                closeDrawer(context);
-              });
-            } else {
-              controlled.forward(1, Curves.easeOut);
-            }
-          },
+          onHorizontalDragUpdate: (details) => _dragBy(controlled,
+              -details.primaryDelta! * sign, getSize(context).width),
+          onHorizontalDragEnd: (details) => _dragEnd(
+              context, controlled, -(details.primaryVelocity ?? 0) * sign),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -321,36 +310,10 @@ class _DrawerWrapperState extends State<DrawerWrapper>
       case OverlayPosition.top:
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onVerticalDragUpdate: (details) {
-            if (controlled == null) {
-              return;
-            }
-            final size = getSize(context);
-            final increment = details.primaryDelta! / size.height;
-            double newValue = controlled.value + increment;
-            if (newValue < 0) {
-              newValue = 0;
-            }
-            if (newValue > 1) {
-              _extraOffset.value +=
-                  details.primaryDelta! / max(_extraOffset.value, 1);
-              newValue = 1;
-            }
-            controlled.value = newValue;
-          },
-          onVerticalDragEnd: (details) {
-            if (controlled == null) {
-              return;
-            }
-            _extraOffset.forward(0, Curves.easeOut);
-            if (controlled.value + _extraOffset.value < 0.5) {
-              controlled.forward(0, Curves.easeOut).then((value) {
-                closeDrawer(context);
-              });
-            } else {
-              controlled.forward(1, Curves.easeOut);
-            }
-          },
+          onVerticalDragUpdate: (details) => _dragBy(
+              controlled, details.primaryDelta!, getSize(context).height),
+          onVerticalDragEnd: (details) =>
+              _dragEnd(context, controlled, details.primaryVelocity ?? 0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -381,36 +344,10 @@ class _DrawerWrapperState extends State<DrawerWrapper>
       case OverlayPosition.bottom:
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onVerticalDragUpdate: (details) {
-            if (controlled == null) {
-              return;
-            }
-            final size = getSize(context);
-            final increment = details.primaryDelta! / size.height;
-            double newValue = controlled.value - increment;
-            if (newValue < 0) {
-              newValue = 0;
-            }
-            if (newValue > 1) {
-              _extraOffset.value +=
-                  -details.primaryDelta! / max(_extraOffset.value, 1);
-              newValue = 1;
-            }
-            controlled.value = newValue;
-          },
-          onVerticalDragEnd: (details) {
-            if (controlled == null) {
-              return;
-            }
-            _extraOffset.forward(0, Curves.easeOut);
-            if (controlled.value + _extraOffset.value < 0.5) {
-              controlled.forward(0, Curves.easeOut).then((value) {
-                closeDrawer(context);
-              });
-            } else {
-              controlled.forward(1, Curves.easeOut);
-            }
-          },
+          onVerticalDragUpdate: (details) => _dragBy(
+              controlled, -details.primaryDelta!, getSize(context).height),
+          onVerticalDragEnd: (details) =>
+              _dragEnd(context, controlled, -(details.primaryVelocity ?? 0)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1147,8 +1084,12 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
 
   Future<void> close([T? result]) {
     if (_closing != null) return _closing!;
-    _closing =
-        _controlledAnimation.forward(0, Curves.easeOutCubic).then((value) {
+    // Already hidden (e.g. drag-dismissed): finish now instead of replaying a
+    // full exit animation while the page stays blocked.
+    final exit = _controlledAnimation.value == 0
+        ? Future<void>.value()
+        : _controlledAnimation.forward(0, Curves.easeOutCubic);
+    _closing = exit.then((value) {
       if (!widget.completer.isCompleted) widget.completer.complete(result);
     });
     if (mounted) setState(() {});
