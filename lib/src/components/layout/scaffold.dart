@@ -535,10 +535,10 @@ enum _ScaffoldPaddingType {
   footer,
 }
 
+// Single child: SingleChildRenderObjectElement requires
+// RenderObjectWithChildMixin, a container mixin crashes when a child is given.
 class _RenderScaffoldPadding extends RenderBox
-    with
-        ContainerRenderObjectMixin<RenderBox, _ScaffoldParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, _ScaffoldParentData> {
+    with RenderObjectWithChildMixin<RenderBox> {
   final _ScaffoldPaddingType _paddingType;
 
   _RenderScaffoldPadding({
@@ -594,18 +594,25 @@ class _RenderScaffoldPadding extends RenderBox
             );
         break;
     }
-    final child = firstChild;
+    final child = this.child;
     if (child != null) {
       child.layout(constraints, parentUsesSize: true);
       size = constraints.constrain(child.size);
-      (child.parentData as BoxParentData).offset = Offset.zero;
     } else {
       size = constraints.biggest;
     }
   }
 
   @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    return child?.hitTest(result, position: position) ?? false;
+  }
+
+  @override
   void paint(PaintingContext context, Offset offset) {
-    defaultPaint(context, offset);
+    final child = this.child;
+    if (child != null) {
+      context.paintChild(child, offset);
+    }
   }
 }
