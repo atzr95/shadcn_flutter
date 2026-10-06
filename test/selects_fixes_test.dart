@@ -63,6 +63,19 @@ void main() {
     expect(changed, CalendarValue.single(date));
   });
 
+  testWidgets('DatePicker opens on the selected date\'s month', (tester) async {
+    final year = DateTime.now().year - 2;
+    await tester.pumpWidget(_app(DatePicker(
+      value: DateTime(year, 3, 10),
+      onChanged: (_) {},
+    )));
+
+    await tester.tap(find.byType(DatePicker));
+    await tester.pumpAndSettle();
+
+    expect(_text('March $year'), findsOneWidget);
+  });
+
   testWidgets('MonthCalendar keeps a month with a mid-month minimum enabled',
       (tester) async {
     final min = DateTime(2024, 5, 15);
