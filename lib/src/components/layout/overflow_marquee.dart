@@ -30,24 +30,22 @@ class OverflowMarquee extends StatefulWidget {
 class _OverflowMarqueeState extends State<OverflowMarquee>
     with SingleTickerProviderStateMixin {
   late Ticker _ticker;
-  Duration elapsed = Duration.zero;
+  // Ticker time. The render object listens and only repaints, so nothing
+  // rebuilds or relayouts per frame.
+  final ValueNotifier<Duration> _elapsed = ValueNotifier(Duration.zero);
 
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker((elapsed) {
-      if (mounted) {
-        setState(() {
-          this.elapsed = elapsed;
-        });
-      }
-    });
-    _ticker.start();
+    // Started and stopped by the render object: it runs only while the
+    // child overflows.
+    _ticker = createTicker((elapsed) => _elapsed.value = elapsed);
   }
 
   @override
   void dispose() {
     _ticker.dispose();
+    _elapsed.dispose();
     super.dispose();
   }
 
@@ -61,7 +59,7 @@ class _OverflowMarqueeState extends State<OverflowMarquee>
         duration: widget.duration,
         delayDuration: widget.delayDuration,
         ticker: _ticker,
-        elapsed: elapsed,
+        elapsed: _elapsed,
         step: widget.step,
         textDirection: textDirection,
         child: widget.child,
@@ -76,7 +74,7 @@ class _OverflowMarqueeLayout extends SingleChildRenderObjectWidget {
   final Duration duration;
   final Duration delayDuration;
   final Ticker ticker;
-  final Duration elapsed;
+  final ValueNotifier<Duration> elapsed;
   final double step;
   final TextDirection textDirection;
 
@@ -132,10 +130,6 @@ class _OverflowMarqueeLayout extends SingleChildRenderObjectWidget {
       renderObject.ticker = ticker;
       hasChanged = true;
     }
-    if (renderObject.elapsed != elapsed) {
-      renderObject.elapsed = elapsed;
-      hasChanged = true;
-    }
     if (renderObject.step != step) {
       renderObject.step = step;
       hasChanged = true;
@@ -150,18 +144,14 @@ class _OverflowMarqueeLayout extends SingleChildRenderObjectWidget {
   }
 }
 
-class _OverflowMarqueeParentData extends ContainerBoxParentData<RenderBox> {
-  double? sizeDiff;
-}
-
-class _RenderOverflowMarqueeLayout extends RenderShiftedBox
-    with ContainerRenderObjectMixin<RenderBox, _OverflowMarqueeParentData> {
+class _RenderOverflowMarqueeLayout extends RenderShiftedBox {
   Axis direction;
   double fadePortion;
   Duration duration;
   Duration delayDuration;
   Ticker ticker;
-  Duration elapsed;
+  // Same notifier for the whole life of the State, so it is never swapped.
+  final ValueNotifier<Duration> elapsed;
   double step;
   TextDirection textDirection;
 
@@ -177,10 +167,31 @@ class _RenderOverflowMarqueeLayout extends RenderShiftedBox
     required this.textDirection,
   });
 
+  // How far the child overflows along [direction]; <= 0 when it fits.
+  double _sizeDiff = 0;
+  // Whether the edges fade, which needs a ShaderMaskLayer.
+  bool _fades = false;
+  double _paintedProgress = 0;
+  Shader? _shader;
+  Object? _shaderKey;
+
   @override
-  void setupParentData(RenderBox child) {
-    if (child.parentData is! _OverflowMarqueeParentData) {
-      child.parentData = _OverflowMarqueeParentData();
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    elapsed.addListener(_onTick);
+  }
+
+  @override
+  void detach() {
+    elapsed.removeListener(_onTick);
+    super.detach();
+  }
+
+  // Only the scroll position moves, so a repaint is enough. Skipped while
+  // the marquee rests at either end.
+  void _onTick() {
+    if (offsetProgress != _paintedProgress) {
+      markNeedsPaint();
     }
   }
 
@@ -218,40 +229,41 @@ class _RenderOverflowMarqueeLayout extends RenderShiftedBox
 
   @override
   Size computeDryLayout(covariant BoxConstraints constraints) {
-    if (direction == Axis.horizontal) {
-      constraints = constraints.copyWith(
-        maxWidth: double.infinity,
-      );
-    } else {
-      constraints = constraints.copyWith(
-        maxHeight: double.infinity,
-      );
-    }
     final child = this.child;
     if (child != null) {
-      return child.getDryLayout(constraints);
+      // Same as performLayout: the child is measured unbounded along the
+      // scroll axis, then this box is clamped to the incoming constraints.
+      return constraints.constrain(
+        child.getDryLayout(_childConstraints(constraints)),
+      );
     }
     return constraints.biggest;
   }
+
+  BoxConstraints _childConstraints(BoxConstraints constraints) =>
+      direction == Axis.horizontal
+          ? constraints.copyWith(maxWidth: double.infinity)
+          : constraints.copyWith(maxHeight: double.infinity);
 
   @override
   ShaderMaskLayer? get layer => super.layer as ShaderMaskLayer?;
 
   @override
-  bool get alwaysNeedsCompositing => child != null;
+  bool get alwaysNeedsCompositing => _fades;
 
   double get offsetProgress {
-    double durationInMicros =
-        duration.inMicroseconds * ((sizeDiff ?? 0) / step);
+    if (_sizeDiff <= 0) return 0;
+    double durationInMicros = duration.inMicroseconds * (_sizeDiff / step);
     int delayDurationInMicros = delayDuration.inMicroseconds;
-    double elapsedInMicros = elapsed.inMicroseconds.toDouble();
+    double elapsedInMicros = elapsed.value.inMicroseconds.toDouble();
     // includes the reverse
     double overalCycleDuration = delayDurationInMicros +
         durationInMicros +
         delayDurationInMicros +
         durationInMicros;
     elapsedInMicros = elapsedInMicros % overalCycleDuration;
-    bool reverse = elapsedInMicros > delayDurationInMicros + durationInMicros;
+    // >= so the exact end of the forward pass does not snap back to 0.
+    bool reverse = elapsedInMicros >= delayDurationInMicros + durationInMicros;
     double cycleElapsedInMicros =
         elapsedInMicros % (delayDurationInMicros + durationInMicros);
     if (cycleElapsedInMicros < delayDurationInMicros) {
@@ -266,144 +278,104 @@ class _RenderOverflowMarqueeLayout extends RenderShiftedBox
     }
   }
 
-  double? get sizeDiff {
-    final parentData = child?.parentData as _OverflowMarqueeParentData?;
-    return parentData?.sizeDiff;
+  // How much an edge is faded (0..1) once [scrolled] pixels are hidden past it.
+  double _fadeAmount(double scrolled) =>
+      (scrolled / fadePortion).clamp(0.0, 1.0);
+
+  // Alpha mask that fades the edge(s) where content is hidden. Mid-scroll both
+  // edges are fully faded, so the cached shader is reused on most frames.
+  Shader _alphaShader(double progress) {
+    final start = _fadeAmount(_sizeDiff * progress);
+    final end = _fadeAmount(_sizeDiff * (1 - progress));
+    final key = (start, end, size, direction, textDirection, fadePortion);
+    if (key == _shaderKey) return _shader!;
+    final horizontal = direction == Axis.horizontal;
+    final portion = fadePortion / (horizontal ? size.width : size.height);
+    _shaderKey = key;
+    return _shader = LinearGradient(
+      begin: horizontal
+          ? AlignmentDirectional.centerStart.resolve(textDirection)
+          : Alignment.topCenter,
+      end: horizontal
+          ? AlignmentDirectional.centerEnd.resolve(textDirection)
+          : Alignment.bottomCenter,
+      colors: [
+        Colors.white.withValues(alpha: 1 - start),
+        Colors.white,
+        Colors.white,
+        Colors.white.withValues(alpha: 1 - end),
+      ],
+      stops: [0.0, portion, 1.0 - portion, 1.0],
+    ).createShader(Offset.zero & size);
   }
 
-  double get fadeStartProgress {
-    final child = this.child;
-    if (child != null) {
-      double size = sizeDiff ?? 0;
-      double progressedSize = size * offsetProgress;
-      return (progressedSize / fadePortion).clamp(0, 1);
-    }
-    return 0;
-  }
-
-  double get fadeEndProgress {
-    final child = this.child;
-    if (child != null) {
-      double size = sizeDiff ?? 0;
-      double progressedSize = size * (1 - offsetProgress);
-      return (progressedSize / fadePortion).clamp(0, 1);
-    }
-    return 0;
-  }
-
-  Shader? _createAlphaShader(
-      bool fadeStart, bool fadeEnd, Rect bounds, double fadePortion) {
-    double portionSize;
-    if (direction == Axis.horizontal) {
-      portionSize = fadePortion / bounds.width;
+  // Scrolls the child to [progress]. In RTL it starts right-aligned (showing
+  // the start of the text) and scrolls the other way.
+  void _positionChild(double progress) {
+    final parentData = child!.parentData as BoxParentData;
+    if (direction == Axis.vertical) {
+      parentData.offset = Offset(0, -_sizeDiff * progress);
+    } else if (textDirection == TextDirection.rtl) {
+      parentData.offset = Offset(-_sizeDiff * (1 - progress), 0);
     } else {
-      portionSize = fadePortion / bounds.height;
+      parentData.offset = Offset(-_sizeDiff * progress, 0);
     }
-    List<Color> colors = [];
-    List<double> stops = [];
-    if (fadeStart) {
-      double start = fadeStartProgress;
-      Color startColor = Colors.white.withOpacity(1 - start);
-      colors.addAll([startColor, Colors.white]);
-      stops.addAll([0.0, portionSize]);
-    } else {
-      colors.addAll([Colors.white]);
-      stops.addAll([0.0]);
-    }
-    if (fadeEnd) {
-      double end = fadeEndProgress;
-      Color endColor = Colors.white.withOpacity(1 - end);
-      colors.addAll([Colors.white, endColor]);
-      stops.addAll([1.0 - portionSize, 1.0]);
-    } else {
-      colors.addAll([Colors.white]);
-      stops.addAll([1.0]);
-    }
-    AlignmentGeometry begin;
-    AlignmentGeometry end;
-    if (direction == Axis.horizontal) {
-      begin = AlignmentDirectional.centerStart.resolve(textDirection);
-      end = AlignmentDirectional.centerEnd.resolve(textDirection);
-    } else {
-      begin = Alignment.topCenter;
-      end = Alignment.bottomCenter;
-    }
-    return LinearGradient(
-      begin: begin,
-      end: end,
-      colors: colors,
-      stops: stops,
-    ).createShader(bounds);
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child != null) {
-      layer ??= ShaderMaskLayer();
-      final parentData = child!.parentData as _OverflowMarqueeParentData;
-      final sizeDiff = parentData.sizeDiff ?? 0;
-      var progress = offsetProgress;
-      Shader? shader = _createAlphaShader(
-        progress > 0 && sizeDiff != 0,
-        progress < 1 && sizeDiff != 0,
-        (Offset.zero & size),
-        25,
-      );
-      if (shader != null) {
-        assert(needsCompositing);
-        layer!
-          ..shader = shader
-          ..maskRect = (offset & size).inflate(1)
-          ..blendMode = BlendMode.modulate;
-        context.pushLayer(layer!, super.paint, offset);
-        assert(() {
-          layer!.debugCreator = debugCreator;
-          return true;
-        }());
-      } else {
-        layer = null;
-        super.paint(context, offset + parentData.offset);
-      }
-    } else {
+    if (child == null) {
       layer = null;
+      return;
     }
+    final progress = _paintedProgress = offsetProgress;
+    // Set here (not in layout) because ticks only repaint; hit testing and
+    // paint transforms read this offset.
+    _positionChild(progress);
+    if (!_fades) {
+      layer = null;
+      super.paint(context, offset);
+      return;
+    }
+    assert(needsCompositing);
+    layer ??= ShaderMaskLayer();
+    layer!
+      ..shader = _alphaShader(progress)
+      ..maskRect = (offset & size).inflate(1)
+      ..blendMode = BlendMode.modulate;
+    context.pushLayer(layer!, super.paint, offset);
+    assert(() {
+      layer!.debugCreator = debugCreator;
+      return true;
+    }());
   }
 
   @override
   void performLayout() {
-    var child = this.child;
+    final child = this.child;
     if (child != null) {
-      var constraints = this.constraints;
-      if (direction == Axis.horizontal) {
-        constraints = constraints.copyWith(
-          maxWidth: double.infinity,
-        );
-      } else {
-        constraints = constraints.copyWith(
-          maxHeight: double.infinity,
-        );
-      }
-      child.layout(constraints, parentUsesSize: true);
-      size = this.constraints.constrain(child.size);
-      final sizeDiff = child.size.width - size.width;
-      if (sizeDiff > 0) {
-        if (!ticker.isActive) {
-          ticker.start();
-        }
-      } else {
-        if (ticker.isActive) {
-          ticker.stop();
-        }
-      }
-      var progress = offsetProgress;
-      final offset = direction == Axis.horizontal
-          ? Offset(-sizeDiff * progress, 0)
-          : Offset(0, -sizeDiff * progress);
-      final parentData = child.parentData as _OverflowMarqueeParentData;
-      parentData.sizeDiff = sizeDiff;
-      parentData.offset = offset;
+      child.layout(_childConstraints(constraints), parentUsesSize: true);
+      size = constraints.constrain(child.size);
+      _sizeDiff = direction == Axis.horizontal
+          ? child.size.width - size.width
+          : child.size.height - size.height;
     } else {
       size = constraints.biggest;
+      _sizeDiff = 0;
+    }
+    if (_sizeDiff > 0) {
+      if (!ticker.isActive) {
+        // Restart from the beginning, not where it last stopped.
+        elapsed.value = Duration.zero;
+        ticker.start();
+      }
+    } else if (ticker.isActive) {
+      ticker.stop();
+    }
+    final fades = _sizeDiff > 0 && fadePortion > 0;
+    if (fades != _fades) {
+      _fades = fades;
+      markNeedsCompositingBitsUpdate();
     }
   }
 }
