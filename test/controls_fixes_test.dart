@@ -56,6 +56,50 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets(
+      'ButtonGroup: const children, RTL inner corners, '
+      'corners kept after theme change', (tester) async {
+    Widget group(ColorScheme colorScheme) => ShadcnApp(
+          theme: ThemeData(colorScheme: colorScheme, radius: 0.5),
+          home: const Center(
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: ButtonGroup(children: [
+                PrimaryButton(key: ValueKey('first'), child: Text('A')),
+                PrimaryButton(key: ValueKey('last'), child: Text('B')),
+              ]),
+            ),
+          ),
+        );
+    BorderRadius radiusOf(String key) {
+      final container = tester.widget<AnimatedContainer>(find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(AnimatedContainer),
+      ));
+      return (container.decoration! as BoxDecoration).borderRadius!
+          as BorderRadius;
+    }
+
+    void expectInnerCornersSquare() {
+      // RTL: the first child sits on the right, so its left side is inner.
+      final first = radiusOf('first');
+      expect(first.topLeft, Radius.zero);
+      expect(first.bottomLeft, Radius.zero);
+      expect(first.topRight, isNot(Radius.zero));
+      final last = radiusOf('last');
+      expect(last.topRight, Radius.zero);
+      expect(last.bottomRight, Radius.zero);
+      expect(last.topLeft, isNot(Radius.zero));
+    }
+
+    await tester.pumpWidget(group(ColorSchemes.lightZinc()));
+    expectInnerCornersSquare();
+
+    await tester.pumpWidget(group(ColorSchemes.darkZinc()));
+    await tester.pump();
+    expectInnerCornersSquare();
+  });
+
   testWidgets('Hover: touch long press stays shown ~1.5s after release',
       (tester) async {
     final events = <bool>[];

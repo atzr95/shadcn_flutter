@@ -3177,6 +3177,8 @@ class ButtonGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> children = this.children;
     if (children.length > 1) {
+      // Wrap into a copy: the caller's list may be const or reused.
+      children = List.of(children);
       for (int i = 0; i < children.length; i++) {
         children[i] = ButtonStyleOverride(
           decoration: (context, states, value) {
@@ -3192,14 +3194,18 @@ class ButtonGroup extends StatelessWidget {
                     borderRadius.resolve(Directionality.of(context));
               }
               if (direction == Axis.horizontal) {
-                if (i == 0) {
+                // In RTL the Flex puts the first child on the right.
+                final rtl = Directionality.of(context) == TextDirection.rtl;
+                final leftMost = rtl ? children.length - 1 : 0;
+                final rightMost = rtl ? 0 : children.length - 1;
+                if (i == leftMost) {
                   return value.copyWith(
                     borderRadius: resolvedBorderRadius.copyWith(
                       topRight: Radius.zero,
                       bottomRight: Radius.zero,
                     ),
                   );
-                } else if (i == children.length - 1) {
+                } else if (i == rightMost) {
                   return value.copyWith(
                     borderRadius: resolvedBorderRadius.copyWith(
                       topLeft: Radius.zero,
