@@ -193,11 +193,12 @@ class PopoverOverlayHandler extends OverlayHandler {
     );
     popoverEntry.initialize(overlayEntry, barrierEntry);
     // System back (Android) closes a modal popover instead of popping the
-    // route under it, e.g. the dialog holding a Select.
+    // route under it, e.g. the dialog holding a Select. Like the barrier, back
+    // does nothing when barrierDismissable is false.
     final route = modal ? ModalRoute.of(context) : null;
     if (route != null) {
       final popEntry = _PopoverPopEntry(isClosed, () {
-        if (isClosed.value) return;
+        if (!barrierDismissable || isClosed.value) return;
         isClosed.value = true;
         completer.complete();
       });
@@ -577,10 +578,10 @@ class PopoverAnchorState extends State<PopoverAnchor>
           builder: (context, child) {
             final theme = Theme.of(context);
             final scaling = theme.scaling;
-            final mediaQuery = MediaQuery.of(context);
             // Keep clear of the status bar, notch, home indicator and keyboard.
-            final safeArea = mediaQuery.padding +
-                EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom);
+            final safeArea = MediaQuery.paddingOf(context) +
+                EdgeInsets.only(
+                    bottom: MediaQuery.viewInsetsOf(context).bottom);
             return PopoverLayout(
               alignment: _alignment.optionallyResolve(context),
               position: _position,
