@@ -24,6 +24,19 @@ class DividerProperties {
       endIndent: lerpDouble(a.endIndent, b.endIndent, t)!,
     );
   }
+
+  // Value equality so AnimatedValueBuilder does not restart on every rebuild.
+  @override
+  bool operator ==(Object other) {
+    return other is DividerProperties &&
+        other.color == color &&
+        other.thickness == thickness &&
+        other.indent == indent &&
+        other.endIndent == endIndent;
+  }
+
+  @override
+  int get hashCode => Object.hash(color, thickness, indent, endIndent);
 }
 
 class Divider extends StatelessWidget implements PreferredSizeWidget {

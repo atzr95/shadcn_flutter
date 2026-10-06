@@ -188,6 +188,19 @@ class DashedLineProperties {
       color: Color.lerp(a.color, b.color, t)!,
     );
   }
+
+  // Value equality so AnimatedValueBuilder does not restart on every rebuild.
+  @override
+  bool operator ==(Object other) {
+    return other is DashedLineProperties &&
+        other.width == width &&
+        other.gap == gap &&
+        other.thickness == thickness &&
+        other.color == color;
+  }
+
+  @override
+  int get hashCode => Object.hash(width, gap, thickness, color);
 }
 
 class DashedLine extends StatelessWidget {
@@ -260,6 +273,37 @@ class DashedContainerProperties {
           b.borderRadius.optionallyResolve(context), t)!,
     );
   }
+
+  // Value equality so AnimatedValueBuilder does not restart on every rebuild.
+  @override
+  bool operator ==(Object other) {
+    return other is DashedContainerProperties &&
+        other.width == width &&
+        other.gap == gap &&
+        other.thickness == thickness &&
+        other.color == color &&
+        other.borderRadius == borderRadius;
+  }
+
+  @override
+  int get hashCode => Object.hash(width, gap, thickness, color, borderRadius);
+}
+
+// Static lerp for values whose borderRadius is already resolved. A tear-off
+// stays identical across builds, unlike a closure, so the animation does not
+// restart.
+DashedContainerProperties _lerpDashedContainerProperties(
+  DashedContainerProperties a,
+  DashedContainerProperties b,
+  double t,
+) {
+  return DashedContainerProperties(
+    width: lerpDouble(a.width, b.width, t)!,
+    gap: lerpDouble(a.gap, b.gap, t)!,
+    thickness: lerpDouble(a.thickness, b.thickness, t)!,
+    color: Color.lerp(a.color, b.color, t)!,
+    borderRadius: BorderRadiusGeometry.lerp(a.borderRadius, b.borderRadius, t)!,
+  );
 }
 
 class DashedContainer extends StatelessWidget {
@@ -289,12 +333,11 @@ class DashedContainer extends StatelessWidget {
         gap: gap ?? (5 * theme.scaling),
         thickness: thickness ?? (1 * theme.scaling),
         color: color ?? theme.colorScheme.border,
-        borderRadius: borderRadius ?? theme.borderRadiusLg,
+        borderRadius:
+            (borderRadius ?? theme.borderRadiusLg).optionallyResolve(context),
       ),
       duration: kDefaultDuration,
-      lerp: (a, b, t) {
-        return DashedContainerProperties.lerp(context, a, b, t);
-      },
+      lerp: _lerpDashedContainerProperties,
       builder: (context, value, child) {
         return CustomPaint(
           painter: DashedPainter(
