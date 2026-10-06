@@ -201,10 +201,10 @@ class ColorShades implements Color, ColorSwatch {
   Color get _primary => _colors[500]!;
 
   @override
-  int get alpha => _primary.a.toInt();
+  int get alpha => _floatToInt8(_primary.a);
 
   @override
-  int get blue => _primary.b.toInt();
+  int get blue => _floatToInt8(_primary.b);
 
   @override
   double computeLuminance() {
@@ -212,13 +212,13 @@ class ColorShades implements Color, ColorSwatch {
   }
 
   @override
-  int get green => _primary.g.toInt();
+  int get green => _floatToInt8(_primary.g);
 
   @override
   double get opacity => _primary.a;
 
   @override
-  int get red => _primary.r.toInt();
+  int get red => _floatToInt8(_primary.r);
 
   @override
   ColorShades withAlpha(int a) {
@@ -235,7 +235,7 @@ class ColorShades implements Color, ColorSwatch {
     // calculate the difference between the current blue value and the new value
     int delta = b - blue;
     for (final key in _shadeValues) {
-      int safe = (_colors[key]!.b.toInt() + delta).clamp(0, 255);
+      int safe = (_floatToInt8(_colors[key]!.b) + delta).clamp(0, 255);
       colors[key] = _colors[key]!.withBlue(safe);
     }
     return ColorShades._direct(colors);
@@ -247,7 +247,7 @@ class ColorShades implements Color, ColorSwatch {
     // calculate the difference between the current green value and the new value
     int delta = g - green;
     for (final key in _shadeValues) {
-      int safe = (_colors[key]!.g.toInt() + delta).clamp(0, 255);
+      int safe = (_floatToInt8(_colors[key]!.g) + delta).clamp(0, 255);
       colors[key] = _colors[key]!.withGreen(safe);
     }
     return ColorShades._direct(colors);
@@ -268,7 +268,7 @@ class ColorShades implements Color, ColorSwatch {
     // calculate the difference between the current red value and the new value
     int delta = r - red;
     for (final key in _shadeValues) {
-      int safe = (_colors[key]!.r.toInt() + delta).clamp(0, 255);
+      int safe = (_floatToInt8(_colors[key]!.r) + delta).clamp(0, 255);
       colors[key] = _colors[key]!.withRed(safe);
     }
     return ColorShades._direct(colors);
@@ -306,11 +306,12 @@ class ColorShades implements Color, ColorSwatch {
       double? green,
       double? blue,
       ColorSpace? colorSpace}) {
-    return Color.fromARGB(
-      (alpha ?? _primary.a * 255).toInt(),
-      (red ?? _primary.r).toInt(),
-      (green ?? _primary.g).toInt(),
-      (blue ?? _primary.b).toInt(),
+    return _primary.withValues(
+      alpha: alpha,
+      red: red,
+      green: green,
+      blue: blue,
+      colorSpace: colorSpace,
     );
   }
 
