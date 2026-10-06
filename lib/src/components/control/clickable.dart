@@ -277,41 +277,82 @@ class Clickable extends StatefulWidget {
 const kDoubleTapMinTime = Duration(milliseconds: 300);
 
 class _ClickableState extends State<Clickable> {
-  late FocusNode _focusNode;
-  late WidgetStatesController _controller;
+  // Created lazily only when the parent passes none; disposed in [dispose].
+  FocusNode? _internalFocusNode;
+  WidgetStatesController? _internalController;
   DateTime? _lastTap;
   int _tapCount = 0;
+
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_internalFocusNode ??= FocusNode());
+  WidgetStatesController get _controller =>
+      widget.statesController ??
+      (_internalController ??= WidgetStatesController());
+
+  bool get _canTap => widget.enabled && widget.onPressed != null;
 
   @override
   void initState() {
     super.initState();
-    _focusNode = widget.focusNode ?? FocusNode();
-    _controller = widget.statesController ?? WidgetStatesController();
     _controller.update(WidgetState.disabled, !widget.enabled);
   }
 
   @override
   void didUpdateWidget(covariant Clickable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.statesController != oldWidget.statesController) {
-      _controller = widget.statesController ?? WidgetStatesController();
-    }
     _controller.update(WidgetState.disabled, !widget.enabled);
-    if (widget.focusNode != oldWidget.focusNode) {
-      _focusNode = widget.focusNode ?? FocusNode();
+    if (!_canTap) {
+      // The tap recognizer is gone, so tap up/cancel will never clear it.
+      _controller.update(WidgetState.pressed, false);
     }
-    if (widget.disableHoverEffect) {
+    if (!widget.enabled || widget.disableHoverEffect) {
       _controller.update(WidgetState.hovered, false);
     }
+  }
+
+  @override
+  void dispose() {
+    _internalFocusNode?.dispose();
+    _internalController?.dispose();
+    super.dispose();
   }
 
   static Future<void> feedbackForTap(BuildContext context) async {
     final currentPlatform = Theme.of(context).platform;
     context.findRenderObject()!.sendSemanticsEvent(const TapSemanticEvent());
-    if (isMobile(currentPlatform)) {
+    // Same as Flutter's Feedback.forTap: iOS has no click sound on tap.
+    if (currentPlatform == TargetPlatform.android ||
+        currentPlatform == TargetPlatform.fuchsia) {
       return SystemSound.play(SystemSoundType.click);
     }
     return Future<void>.value();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    if (widget.enableFeedback) {
+      // also dispatch hover
+      _controller.update(WidgetState.hovered, true);
+    }
+    _controller.update(WidgetState.pressed, true);
+    widget.onTapDown?.call(details);
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    if (widget.enableFeedback) {
+      // also dispatch hover
+      _controller.update(WidgetState.hovered, false);
+    }
+    _controller.update(WidgetState.pressed, false);
+    widget.onTapUp?.call(details);
+  }
+
+  void _onTapCancel() {
+    if (widget.enableFeedback) {
+      // also dispatch hover
+      _controller.update(WidgetState.hovered, false);
+    }
+    _controller.update(WidgetState.pressed, false);
+    widget.onTapCancel?.call();
   }
 
   void _onPressed() {
@@ -366,6 +407,8 @@ class _ClickableState extends State<Clickable> {
       borderRadius = theme.borderRadiusMd;
     }
     var buttonContainer = _buildContainer(context, decoration);
+    // Disabled: no gestures, so no pressed/hover feedback and no callbacks.
+    final canTap = _canTap;
     return FocusOutline(
       focused: widget.focusOutline &&
           _controller.value.contains(WidgetState.focused) &&
@@ -373,48 +416,24 @@ class _ClickableState extends State<Clickable> {
       borderRadius: borderRadius,
       child: GestureDetector(
         behavior: widget.behavior,
-        onTap: widget.onPressed != null ? _onPressed : null,
-        onLongPress: widget.onLongPress,
+        onTap: canTap ? _onPressed : null,
+        onLongPress: enabled ? widget.onLongPress : null,
         // onDoubleTap: widget.onDoubleTap, HANDLED CUSTOMLY
-        onSecondaryTapDown: widget.onSecondaryTapDown,
-        onSecondaryTapUp: widget.onSecondaryTapUp,
-        onSecondaryTapCancel: widget.onSecondaryTapCancel,
-        onTertiaryTapDown: widget.onTertiaryTapDown,
-        onTertiaryTapUp: widget.onTertiaryTapUp,
-        onTertiaryTapCancel: widget.onTertiaryTapCancel,
-        onLongPressStart: widget.onLongPressStart,
-        onLongPressUp: widget.onLongPressUp,
-        onLongPressMoveUpdate: widget.onLongPressMoveUpdate,
-        onLongPressEnd: widget.onLongPressEnd,
-        onSecondaryLongPress: widget.onSecondaryLongPress,
-        onTertiaryLongPress: widget.onTertiaryLongPress,
-        onTapDown: widget.onPressed != null
-            ? (details) {
-                if (widget.enableFeedback) {
-                  // also dispatch hover
-                  _controller.update(WidgetState.hovered, true);
-                }
-                _controller.update(WidgetState.pressed, true);
-              }
-            : null,
-        onTapUp: widget.onPressed != null
-            ? (details) {
-                if (widget.enableFeedback) {
-                  // also dispatch hover
-                  _controller.update(WidgetState.hovered, false);
-                }
-                _controller.update(WidgetState.pressed, false);
-              }
-            : null,
-        onTapCancel: widget.onPressed != null
-            ? () {
-                if (widget.enableFeedback) {
-                  // also dispatch hover
-                  _controller.update(WidgetState.hovered, false);
-                }
-                _controller.update(WidgetState.pressed, false);
-              }
-            : null,
+        onSecondaryTapDown: enabled ? widget.onSecondaryTapDown : null,
+        onSecondaryTapUp: enabled ? widget.onSecondaryTapUp : null,
+        onSecondaryTapCancel: enabled ? widget.onSecondaryTapCancel : null,
+        onTertiaryTapDown: enabled ? widget.onTertiaryTapDown : null,
+        onTertiaryTapUp: enabled ? widget.onTertiaryTapUp : null,
+        onTertiaryTapCancel: enabled ? widget.onTertiaryTapCancel : null,
+        onLongPressStart: enabled ? widget.onLongPressStart : null,
+        onLongPressUp: enabled ? widget.onLongPressUp : null,
+        onLongPressMoveUpdate: enabled ? widget.onLongPressMoveUpdate : null,
+        onLongPressEnd: enabled ? widget.onLongPressEnd : null,
+        onSecondaryLongPress: enabled ? widget.onSecondaryLongPress : null,
+        onTertiaryLongPress: enabled ? widget.onTertiaryLongPress : null,
+        onTapDown: canTap ? _onTapDown : null,
+        onTapUp: canTap ? _onTapUp : null,
+        onTapCancel: canTap ? _onTapCancel : null,
         child: FocusableActionDetector(
           enabled: enabled,
           focusNode: _focusNode,
