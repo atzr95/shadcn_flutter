@@ -17,17 +17,14 @@ ToastOverlay showToast({
   VoidCallback? onClosed,
   Duration showDuration = const Duration(seconds: 5),
 }) {
-  _ToastLayerState? layer = Data.maybeFindMessenger(context);
-  layer ??= Data.maybeOf(context);
-  CapturedThemes? themes;
-  CapturedData? data;
-  if (layer != null) {
-    themes = InheritedTheme.capture(from: context, to: layer.context);
-    data = Data.capture(from: context, to: layer.context);
-  } else {
-    layer = Data.maybeFindMessenger<_ToastLayerState>(context);
-  }
+  // The nearest ToastLayer that is a real ancestor. A Data lookup can return
+  // a layer copied in by Data.capture (e.g. the page's layer seen from a
+  // dialog or sheet), which is not an ancestor: theme capture asserts and
+  // the toast renders under the dialog's barrier.
+  final layer = context.findAncestorStateOfType<_ToastLayerState>();
   assert(layer != null, 'No ToastLayer found in context');
+  final themes = InheritedTheme.capture(from: context, to: layer!.context);
+  final data = Data.capture(from: context, to: layer.context);
   final entry = ToastEntry(
     builder: builder,
     location: location,
@@ -39,7 +36,7 @@ ToastOverlay showToast({
     onClosed: onClosed,
     showDuration: showDuration,
   );
-  return layer!.addEntry(entry);
+  return layer.addEntry(entry);
 }
 
 enum ToastLocation {
