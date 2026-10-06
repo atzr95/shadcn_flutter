@@ -2235,7 +2235,7 @@ class RenderTableLayout extends RenderBox
 
   @override
   double computeMaxIntrinsicHeight(double width) {
-    return computeMinIntrinsicHeight(width);
+    return getMinIntrinsicHeight(width); // cached
   }
 
   // delegate from TableLayoutResult, with read-only view
