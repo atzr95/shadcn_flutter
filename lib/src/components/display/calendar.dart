@@ -749,11 +749,7 @@ class Calendar extends StatelessWidget {
       return;
     }
     if (selectionMode == CalendarSelectionMode.single) {
-      if (calendarValue is SingleCalendarValue &&
-          date.isAtSameMomentAs(calendarValue.date)) {
-        onChanged?.call(null);
-        return;
-      }
+      // Tapping the selected day re-selects it (confirms) instead of clearing.
       onChanged?.call(CalendarValue.single(date));
       return;
     }

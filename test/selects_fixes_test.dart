@@ -46,4 +46,23 @@ void main() {
     expect(value, ['b']);
     expect(controller.values[key], ['b']);
   });
+
+  testWidgets('single Calendar keeps the selected day when it is tapped again',
+      (tester) async {
+    final date = DateTime(2024, 5, 10);
+    CalendarValue? changed;
+    await tester.pumpWidget(_app(Calendar(
+      view: CalendarView(2024, 5),
+      value: CalendarValue.single(date),
+      selectionMode: CalendarSelectionMode.single,
+      onChanged: (v) => changed = v,
+    )));
+
+    await tester.tap(_text('10'));
+
+    expect(changed, CalendarValue.single(date));
+  });
 }
+
+Finder _text(String data) =>
+    find.byWidgetPredicate((w) => w is Text && w.data == data);
