@@ -400,6 +400,37 @@ class _ShadcnAppState extends State<ShadcnApp> {
     );
   }
 
+  // Material and Cupertino themes derived from the active shadcn color scheme,
+  // so keyboards, selection handles and toolbars follow dark mode. Cached by
+  // scheme value because ColorScheme.fromSeed is expensive.
+  ColorScheme? _derivedFrom;
+  late m.ThemeData _derivedMaterialTheme;
+  late c.CupertinoThemeData _derivedCupertinoTheme;
+
+  void _deriveThemes(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    if (scheme == _derivedFrom) return;
+    _derivedFrom = scheme;
+    _derivedMaterialTheme = m.ThemeData.from(
+      colorScheme: m.ColorScheme.fromSeed(
+        seedColor: scheme.primary,
+        brightness: scheme.brightness,
+        surface: scheme.background,
+        primary: scheme.primary,
+        secondary: scheme.secondary,
+        error: scheme.destructive,
+      ),
+    );
+    _derivedCupertinoTheme = c.CupertinoThemeData(
+      brightness: scheme.brightness,
+      primaryColor: scheme.primary,
+      barBackgroundColor: scheme.accent,
+      scaffoldBackgroundColor: scheme.background,
+      applyThemeToAll: true,
+      primaryContrastingColor: scheme.primaryForeground,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget result = _buildWidgetApp(context);
@@ -414,28 +445,15 @@ class _ShadcnAppState extends State<ShadcnApp> {
       }
       return true;
     }());
+    // Same pick as ShadcnLayer. MediaQuery comes from the root View, so it is
+    // available here. Only system mode depends on platform brightness.
+    final themeMode = widget.themeMode;
+    final isDark = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+    _deriveThemes(isDark ? widget.darkTheme ?? widget.theme : widget.theme);
     return m.Theme(
-      data: widget.materialTheme ??
-          m.ThemeData.from(
-            colorScheme: m.ColorScheme.fromSeed(
-              seedColor: widget.theme.colorScheme.primary,
-              brightness: widget.theme.brightness,
-              surface: widget.theme.colorScheme.background,
-              primary: widget.theme.colorScheme.primary,
-              secondary: widget.theme.colorScheme.secondary,
-              error: widget.theme.colorScheme.destructive,
-            ),
-          ),
+      data: widget.materialTheme ?? _derivedMaterialTheme,
       child: c.CupertinoTheme(
-        data: widget.cupertinoTheme ??
-            c.CupertinoThemeData(
-              brightness: widget.theme.brightness,
-              primaryColor: widget.theme.colorScheme.primary,
-              barBackgroundColor: widget.theme.colorScheme.accent,
-              scaffoldBackgroundColor: widget.theme.colorScheme.background,
-              applyThemeToAll: true,
-              primaryContrastingColor: widget.theme.colorScheme.primaryForeground,
-            ),
+        data: widget.cupertinoTheme ?? _derivedCupertinoTheme,
         child: m.Material(
           color: m.Colors.transparent,
           child: m.ScaffoldMessenger(
