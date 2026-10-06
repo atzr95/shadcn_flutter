@@ -142,10 +142,15 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(_app(
         const Scaffold(
-          child: Scaffold(child: SizedBox.expand(key: ValueKey('content'))),
+          child: Scaffold(
+            footers: [SizedBox(key: ValueKey('footer'), height: 50)],
+            child: SizedBox.expand(key: ValueKey('content')),
+          ),
         ),
       ));
       expect(tester.getSize(find.byKey(const ValueKey('content'))).height, 700);
+      // The inner footer still hides while the keyboard is open.
+      expect(find.byKey(const ValueKey('footer')), findsNothing);
     });
 
     testWidgets('ScaffoldHeaderPadding takes a child and hit-tests it',

@@ -61,7 +61,16 @@ class ScaffoldBarData {
   int get hashCode => Object.hash(isHeader, childIndex, childrenCount);
 }
 
+// Passed to a Scaffold's content, which sees no view insets (the outer
+// Scaffold pads them away), so a nested Scaffold still hides its footers
+// while the keyboard is open.
+enum _ScaffoldKeyboard { open, closed }
+
 class ScaffoldState extends State<Scaffold> {
+  bool _isKeyboardOpen(EdgeInsets viewInsets) =>
+      viewInsets.bottom > 0 ||
+      Data.maybeOf<_ScaffoldKeyboard>(context) == _ScaffoldKeyboard.open;
+
   Widget buildHeader(BuildContext context) {
     return Container(
       color: widget.headerBackgroundColor,
@@ -137,7 +146,7 @@ class ScaffoldState extends State<Scaffold> {
 
   Widget buildFooter(BuildContext context, EdgeInsets viewInsets) {
     return Offstage(
-      offstage: viewInsets.bottom > 0,
+      offstage: _isKeyboardOpen(viewInsets),
       child: Container(
         color: widget.footerBackgroundColor,
         child: Column(
@@ -185,7 +194,12 @@ class ScaffoldState extends State<Scaffold> {
                 removeTop: true,
                 removeRight: true,
                 removeBottom: true,
-                child: ToastLayer(child: widget.child),
+                child: Data<_ScaffoldKeyboard>.inherit(
+                  data: _isKeyboardOpen(viewInsets)
+                      ? _ScaffoldKeyboard.open
+                      : _ScaffoldKeyboard.closed,
+                  child: ToastLayer(child: widget.child),
+                ),
               ),
             ),
             buildFooter(context, viewInsets),
