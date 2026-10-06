@@ -301,7 +301,9 @@ class FixedTooltipOverlayHandler extends OverlayHandler {
                         if (value == 0.0 && isClosed.value) {
                           popoverEntry.remove();
                           popoverEntry.dispose();
-                          animationCompleter.complete();
+                          if (!animationCompleter.isCompleted) {
+                            animationCompleter.complete();
+                          }
                         }
                       },
                       builder: (innerContext, animation) {
@@ -342,7 +344,12 @@ class FixedTooltipOverlayHandler extends OverlayHandler {
                           },
                           onImmediateClose: () {
                             popoverEntry.remove();
-                            completer.complete();
+                            popoverEntry.dispose();
+                            // May already be closing (animated close running).
+                            if (!completer.isCompleted) completer.complete();
+                            if (!animationCompleter.isCompleted) {
+                              animationCompleter.complete();
+                            }
                           },
                           onCloseWithResult: (value) {
                             if (isClosed.value) return Future.value();
