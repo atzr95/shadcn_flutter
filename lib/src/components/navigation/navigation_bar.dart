@@ -269,15 +269,24 @@ class _NavigationRailState extends State<NavigationRail>
               (theme.colorScheme.background
                   .scaleAlpha(widget.surfaceOpacity ?? 1)),
           alignment: _alignment,
-          child: SingleChildScrollView(
-            scrollDirection: widget.direction,
-            padding: resolvedPadding,
-            child: _wrapIntrinsic(
-              Flex(
-                direction: widget.direction,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: wrapChildren(context, widget.children),
-              ).gap(widget.spacing ?? (8 * scaling)),
+          // A rail sits on the start edge: keep its items clear of a
+          // landscape notch there. Inside the Container so the background
+          // still fills the inset.
+          child: SafeArea(
+            left: directionality == TextDirection.ltr,
+            right: directionality == TextDirection.rtl,
+            top: false,
+            bottom: false,
+            child: SingleChildScrollView(
+              scrollDirection: widget.direction,
+              padding: resolvedPadding,
+              child: _wrapIntrinsic(
+                Flex(
+                  direction: widget.direction,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: wrapChildren(context, widget.children),
+                ).gap(widget.spacing ?? (8 * scaling)),
+              ),
             ),
           ),
         ),
