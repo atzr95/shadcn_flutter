@@ -914,13 +914,17 @@ DrawerOverlayCompleter<T?> openRawDrawer<T>({
 
 // Shows [entry] in a DrawerOverlay inserted into [overlay] and removes it
 // once the entry completes. Used when no DrawerOverlay is above [context].
+// ponytail: like popovers, the host stays above any route pushed after it
+// opens (e.g. a page opened from a sheet item shows under the closing sheet).
+// Close the host when the caller's route stops being current if that matters.
 void _showInRootOverlay(
     BuildContext context, OverlayState overlay, DrawerOverlayEntry entry) {
   final host = GlobalKey<_DrawerOverlayState>();
   final overlayEntry = OverlayEntry(
-    // Opaque: taps outside the drawer must not reach the dialog below.
+    // A modal drawer blocks taps outside it from reaching the dialog below.
     builder: (_) => Listener(
-      behavior: HitTestBehavior.opaque,
+      behavior:
+          entry.modal ? HitTestBehavior.opaque : HitTestBehavior.deferToChild,
       child: _DrawerOverlayHost(key: host, entry: entry),
     ),
   );
@@ -931,6 +935,11 @@ void _showInRootOverlay(
   final popEntry = _DrawerHostPopEntry(host);
   route?.registerPopEntry(popEntry);
   entry.completer.future.whenComplete(() {
+    // Drawers stacked on this one go away with the host; finish them too so
+    // their callers do not wait forever.
+    for (final other in host.currentState?._entries ?? const []) {
+      if (!other.completer.isCompleted) other.completer.complete();
+    }
     route?.unregisterPopEntry(popEntry);
     overlayEntry.remove();
     overlayEntry.dispose();
@@ -946,7 +955,10 @@ class _DrawerOverlayHost extends DrawerOverlay {
 }
 
 // Back on the caller's route closes the top drawer of a root-hosted overlay
-// (and blocks the pop) while that overlay is open.
+// (and blocks the pop) while that overlay is open. If the route is popped
+// anyway (by code), every drawer in the host closes with it. The route's
+// result is never passed on: it is not the drawer's result, and a value of
+// the wrong type would throw inside the Navigator.
 class _DrawerHostPopEntry extends PopEntry<Object?> {
   final GlobalKey<_DrawerOverlayState> host;
 
@@ -957,7 +969,15 @@ class _DrawerHostPopEntry extends PopEntry<Object?> {
 
   @override
   void onPopInvokedWithResult(bool didPop, Object? result) {
-    host.currentState?._closeTop(result);
+    final host = this.host.currentState;
+    if (host == null) return;
+    if (!didPop) {
+      host._closeTop(null);
+      return;
+    }
+    for (final entry in host._entries.reversed) {
+      _DrawerOverlayState._close(entry, null);
+    }
   }
 }
 
@@ -1041,11 +1061,16 @@ class _DrawerOverlayState extends State<DrawerOverlay> {
     if (_entries.isEmpty) return;
     var last = _entries.last;
     if (!last.barrierDismissible) return;
-    var state = last.key.currentState;
+    _close(last, result);
+  }
+
+  // Closes [entry], with its exit animation when its state can be found.
+  static void _close(DrawerOverlayEntry entry, Object? result) {
+    var state = entry.key.currentState;
     if (state != null) {
       state.close(result);
-    } else if (!last.completer.isCompleted) {
-      last.completer.complete(result);
+    } else if (!entry.completer.isCompleted) {
+      entry.completer.complete(result);
     }
   }
 
