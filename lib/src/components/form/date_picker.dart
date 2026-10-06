@@ -46,7 +46,8 @@ class DatePicker extends StatelessWidget {
       mode: mode,
       editorBuilder: (context, handler) {
         return DatePickerDialog(
-          initialView: initialView ?? CalendarView.now(),
+          // Null lets the dialog open on the selected date's month, then now.
+          initialView: initialView,
           initialViewType: initialViewType ?? CalendarViewType.date,
           selectionMode: CalendarSelectionMode.single,
           initialValue: handler.value == null
