@@ -134,23 +134,7 @@ class _StepVariantCircle extends StepVariant {
               children: children,
             ),
           ),
-          AnimatedBuilder(
-              animation: properties.state,
-              builder: (context, child) {
-                var current = properties.state.value.currentStep;
-                return Flexible(
-                    child: IndexedStack(
-                  index: current < 0 || current >= properties.steps.length
-                      ? properties.steps.length // will show the placeholder
-                      : current,
-                  children: [
-                    for (int i = 0; i < properties.steps.length; i++)
-                      properties[i]?.contentBuilder?.call(context) ??
-                          const SizedBox(),
-                    const SizedBox(), // for placeholder
-                  ],
-                ));
-              }),
+          _buildHorizontalContent(context, properties),
         ],
       );
     } else {
@@ -264,6 +248,43 @@ class _StepVariantCircle extends StepVariant {
   }
 }
 
+/// Content area under a horizontal stepper's header, shared by all variants.
+///
+/// Every step stays mounted so its state survives switching steps, but only
+/// the current one is shown and sizes the area. An [IndexedStack] would be as
+/// tall as the tallest step; here the hidden steps are [Offstage], which a
+/// [Stack] measures as zero, so the area follows the current step. Children
+/// get the same loose constraints [IndexedStack] gave them.
+Widget _buildHorizontalContent(
+    BuildContext context, StepProperties properties) {
+  return AnimatedBuilder(
+      animation: properties.state,
+      builder: (context, child) {
+        var current = properties.state.value.currentStep;
+        return Flexible(
+            child: Stack(
+          children: [
+            for (int i = 0; i < properties.steps.length; i++)
+              Offstage(
+                offstage: i != current,
+                child: TickerMode(
+                  enabled: i == current,
+                  child: ExcludeFocus(
+                    excluding: i != current,
+                    child: properties[i]?.contentBuilder?.call(context) ??
+                        const SizedBox(),
+                  ),
+                ),
+              ),
+            // Keeps the Stack at zero size when there are no steps (a Stack
+            // with no children fills its parent). An out-of-range current
+            // step shows nothing: every step is offstage.
+            const SizedBox(),
+          ],
+        ));
+      });
+}
+
 class _StepVariantCircleAlternative extends StepVariant {
   const _StepVariantCircleAlternative();
   @override
@@ -356,23 +377,7 @@ class _StepVariantCircleAlternative extends StepVariant {
               children: children,
             ),
           ),
-          AnimatedBuilder(
-              animation: properties.state,
-              builder: (context, child) {
-                var current = properties.state.value.currentStep;
-                return Flexible(
-                    child: IndexedStack(
-                  index: current < 0 || current >= properties.steps.length
-                      ? properties.steps.length // will show the placeholder
-                      : current,
-                  children: [
-                    for (int i = 0; i < properties.steps.length; i++)
-                      properties[i]?.contentBuilder?.call(context) ??
-                          const SizedBox(),
-                    const SizedBox(), // for placeholder
-                  ],
-                ));
-              }),
+          _buildHorizontalContent(context, properties),
         ],
       );
     } else {
@@ -540,23 +545,7 @@ class _StepVariantLine extends StepVariant {
               children: children,
             ).gap(16 * scaling),
           ),
-          AnimatedBuilder(
-              animation: properties.state,
-              builder: (context, child) {
-                var current = properties.state.value.currentStep;
-                return Flexible(
-                    child: IndexedStack(
-                  index: current < 0 || current >= properties.steps.length
-                      ? properties.steps.length // will show the placeholder
-                      : current,
-                  children: [
-                    for (int i = 0; i < properties.steps.length; i++)
-                      properties[i]?.contentBuilder?.call(context) ??
-                          const SizedBox(),
-                    const SizedBox(), // for placeholder
-                  ],
-                ));
-              }),
+          _buildHorizontalContent(context, properties),
         ],
       );
     } else {
