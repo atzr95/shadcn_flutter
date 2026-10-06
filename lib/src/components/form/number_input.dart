@@ -89,8 +89,9 @@ class _NumberInputState extends State<NumberInput> {
       height: 32 * theme.scaling,
       child: GestureDetector(
         onPanUpdate: (details) {
+          // Dragging down lowers the value (bounded by min), up raises it.
           if (details.delta.dy > 0) {
-            if (widget.max == null || _lastValidValue < widget.max!) {
+            if (widget.min == null || _lastValidValue > widget.min!) {
               double oldValue = _value.toDouble();
               _lastValidValue = oldValue - widget.step;
               _controller.text = widget.allowDecimals
@@ -99,7 +100,7 @@ class _NumberInputState extends State<NumberInput> {
               widget.onChanged?.call(_lastValidValue);
             }
           } else if (details.delta.dy < 0) {
-            if (widget.min == null || _lastValidValue > widget.min!) {
+            if (widget.max == null || _lastValidValue < widget.max!) {
               double oldValue = _value.toDouble();
               _lastValidValue = oldValue + widget.step;
               _controller.text = widget.allowDecimals
@@ -113,7 +114,7 @@ class _NumberInputState extends State<NumberInput> {
           onPointerSignal: (event) {
             if (event is PointerScrollEvent) {
               if (event.scrollDelta.dy > 0) {
-                if (widget.max == null || _lastValidValue < widget.max!) {
+                if (widget.min == null || _lastValidValue > widget.min!) {
                   double oldValue = _value.toDouble();
                   _lastValidValue = oldValue - widget.step;
                   _controller.text = widget.allowDecimals
@@ -122,7 +123,7 @@ class _NumberInputState extends State<NumberInput> {
                   widget.onChanged?.call(_lastValidValue);
                 }
               } else {
-                if (widget.min == null || _lastValidValue > widget.min!) {
+                if (widget.max == null || _lastValidValue < widget.max!) {
                   double oldValue = _value.toDouble();
                   _lastValidValue = oldValue + widget.step;
                   _controller.text = widget.allowDecimals
