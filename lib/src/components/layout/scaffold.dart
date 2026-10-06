@@ -46,6 +46,19 @@ class ScaffoldBarData {
     required this.childIndex,
     required this.childrenCount,
   });
+
+  // Value equality so bars do not rebuild each time the Scaffold rebuilds
+  // (e.g. every keyboard animation frame).
+  @override
+  bool operator ==(Object other) {
+    return other is ScaffoldBarData &&
+        other.isHeader == isHeader &&
+        other.childIndex == childIndex &&
+        other.childrenCount == childrenCount;
+  }
+
+  @override
+  int get hashCode => Object.hash(isHeader, childIndex, childrenCount);
 }
 
 class ScaffoldState extends State<Scaffold> {
@@ -158,9 +171,22 @@ class ScaffoldState extends State<Scaffold> {
           floatingFooter: widget.floatingFooter,
           children: [
             buildHeader(context),
+            // The content is padded by the insets, so descendants (e.g. a
+            // nested Scaffold) must not see them again. Insets can briefly be
+            // negative mid keyboard animation, and padding must not be.
             Container(
-              padding: viewInsets,
-              child: ToastLayer(child: widget.child),
+              padding: viewInsets.clamp(
+                EdgeInsets.zero,
+                EdgeInsetsGeometry.infinity,
+              ),
+              child: MediaQuery.removeViewInsets(
+                context: context,
+                removeLeft: true,
+                removeTop: true,
+                removeRight: true,
+                removeBottom: true,
+                child: ToastLayer(child: widget.child),
+              ),
             ),
             buildFooter(context, viewInsets),
           ],
