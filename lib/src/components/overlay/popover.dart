@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
@@ -542,39 +543,48 @@ class PopoverAnchorState extends State<PopoverAnchor>
               }
             : null,
         groupId: widget.regionGroupId,
-        child: MediaQuery.removePadding(
-          context: context,
-          removeBottom: true,
-          removeLeft: true,
-          removeRight: true,
-          removeTop: true,
-          child: AnimatedBuilder(
-            animation: Listenable.merge([widget.animation, _anchorMoved]),
-            builder: (context, child) {
-              final theme = Theme.of(context);
-              final scaling = theme.scaling;
-              return PopoverLayout(
-                alignment: _alignment.optionallyResolve(context),
-                position: _position,
-                anchorSize: _anchorSize,
-                anchorAlignment: _anchorAlignment.optionallyResolve(context),
-                widthConstraint: _widthConstraint,
-                heightConstraint: _heightConstraint,
-                offset: _offset,
-                margin: _margin?.optionallyResolve(context) ??
-                    (const EdgeInsets.all(8) * scaling),
-                scale: tweenValue(0.9, 1.0, widget.animation.value),
-                scaleAlignment: (widget.transitionAlignment ?? _alignment)
-                    .optionallyResolve(context),
-                allowInvertVertical: _allowInvertVertical,
-                allowInvertHorizontal: _allowInvertHorizontal,
+        // MediaQuery is read here, not in build, so keyboard frames re-lay
+        // out the popover without rebuilding its content.
+        child: AnimatedBuilder(
+          animation: Listenable.merge([widget.animation, _anchorMoved]),
+          builder: (context, child) {
+            final theme = Theme.of(context);
+            final scaling = theme.scaling;
+            final mediaQuery = MediaQuery.of(context);
+            // Keep clear of the status bar, notch, home indicator and keyboard.
+            final safeArea = mediaQuery.padding +
+                EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom);
+            return PopoverLayout(
+              alignment: _alignment.optionallyResolve(context),
+              position: _position,
+              anchorSize: _anchorSize,
+              anchorAlignment: _anchorAlignment.optionallyResolve(context),
+              widthConstraint: _widthConstraint,
+              heightConstraint: _heightConstraint,
+              offset: _offset,
+              margin: (_margin?.optionallyResolve(context) ??
+                      (const EdgeInsets.all(8) * scaling)) +
+                  safeArea,
+              scale: tweenValue(0.9, 1.0, widget.animation.value),
+              scaleAlignment: (widget.transitionAlignment ?? _alignment)
+                  .optionallyResolve(context),
+              allowInvertVertical: _allowInvertVertical,
+              allowInvertHorizontal: _allowInvertHorizontal,
+              // The margin already holds the safe area; content must not pad
+              // for it again.
+              child: MediaQuery.removePadding(
+                context: context,
+                removeBottom: true,
+                removeLeft: true,
+                removeRight: true,
+                removeTop: true,
                 child: child!,
-              );
-            },
-            child: FadeTransition(
-              opacity: widget.animation,
-              child: widget.builder(context),
-            ),
+              ),
+            );
+          },
+          child: FadeTransition(
+            opacity: widget.animation,
+            child: widget.builder(context),
           ),
         ),
       ),
@@ -1166,10 +1176,12 @@ class PopoverLayoutRender extends RenderShiftedBox {
   }
 
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
+    // The child must fit inside the margin, or performLayout pushes it
+    // past the screen edge.
     double minWidth = 0;
-    double maxWidth = constraints.maxWidth;
+    double maxWidth = math.max(0, constraints.maxWidth - _margin.horizontal);
     double minHeight = 0;
-    double maxHeight = constraints.maxHeight;
+    double maxHeight = math.max(0, constraints.maxHeight - _margin.vertical);
     if (_widthConstraint == PopoverConstraint.anchorFixedSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
       // Never force the popup wider than the overlay, or it gets pushed
@@ -1181,18 +1193,18 @@ class PopoverLayoutRender extends RenderShiftedBox {
       minWidth = _anchorSize!.width.clamp(0, maxWidth);
     } else if (_widthConstraint == PopoverConstraint.anchorMaxSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
-      maxWidth = _anchorSize!.width;
+      maxWidth = math.min(_anchorSize!.width, maxWidth);
     }
     if (_heightConstraint == PopoverConstraint.anchorFixedSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
-      minHeight = _anchorSize!.height;
-      maxHeight = _anchorSize!.height;
+      minHeight = _anchorSize!.height.clamp(0, maxHeight);
+      maxHeight = minHeight;
     } else if (_heightConstraint == PopoverConstraint.anchorMinSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
-      minHeight = _anchorSize!.height;
+      minHeight = _anchorSize!.height.clamp(0, maxHeight);
     } else if (_heightConstraint == PopoverConstraint.anchorMaxSize) {
       assert(_anchorSize != null, 'anchorSize must not be null');
-      maxHeight = _anchorSize!.height;
+      maxHeight = math.min(_anchorSize!.height, maxHeight);
     }
     return BoxConstraints(
       minWidth: minWidth,
