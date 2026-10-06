@@ -105,10 +105,14 @@ class ConditionalValidator<T> extends Validator<T> {
     return dependencies.contains(source);
   }
 
+  // Read as Object: `other.predicate` through ConditionalValidator<dynamic>
+  // fails Dart's runtime type check when T is narrower (e.g. String).
+  Object get _predicate => predicate;
+
   @override
   operator ==(Object other) {
     return other is ConditionalValidator &&
-        other.predicate == predicate &&
+        other._predicate == predicate &&
         other.message == message;
   }
 
@@ -136,9 +140,12 @@ class ValidatorBuilder<T> extends Validator<T> {
     return dependencies.contains(source);
   }
 
+  // Read as Object, same reason as ConditionalValidator._predicate.
+  Object get _builder => builder;
+
   @override
   operator ==(Object other) {
-    return other is ValidatorBuilder && other.builder == builder;
+    return other is ValidatorBuilder && other._builder == builder;
   }
 
   @override

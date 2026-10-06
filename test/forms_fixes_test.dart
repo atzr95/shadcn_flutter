@@ -45,6 +45,24 @@ String _editableText(WidgetTester tester) {
 }
 
 void main() {
+  test('typed function validators compare through Validator<dynamic>', () {
+    // FormEntry compares validators on every rebuild; a String-typed
+    // predicate read through Validator<dynamic> used to throw a TypeError.
+    Future<bool> exists(String? v) async => true;
+    final Validator<dynamic> a = const NotEmptyValidator() &
+        ConditionalValidator<String>(exists, message: 'm');
+    final Validator<dynamic> b = const NotEmptyValidator() &
+        ConditionalValidator<String>(exists, message: 'm');
+    final Validator<dynamic> c = const NotEmptyValidator() &
+        ConditionalValidator<String>((v) async => true, message: 'm');
+    expect(a == b, isTrue);
+    expect(a == c, isFalse);
+    ValidationResult? none(String? v) => null;
+    final Validator<dynamic> d = ValidatorBuilder<String>(none);
+    expect(d == ValidatorBuilder<String>(none), isTrue);
+    expect(d == ValidatorBuilder<String>((v) => null), isFalse);
+  });
+
   testWidgets('submitForm blocks onSubmit on a sync InvalidResult',
       (tester) async {
     var submitted = false;
