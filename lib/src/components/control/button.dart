@@ -1763,22 +1763,29 @@ Decoration _buttonTextDecoration(
   );
 }
 
+// Text buttons are already mutedForeground, so disabled fades it to half
+// alpha (same as disabled menu items) to look different from enabled.
+Color _buttonTextColor(BuildContext context, Set<WidgetState> states) {
+  var themeData = Theme.of(context);
+  if (states.contains(WidgetState.disabled)) {
+    return themeData.colorScheme.mutedForeground.scaleAlpha(0.5);
+  }
+  return states.contains(WidgetState.hovered)
+      ? themeData.colorScheme.primary
+      : themeData.colorScheme.mutedForeground;
+}
+
 TextStyle _buttonTextTextStyle(BuildContext context, Set<WidgetState> states) {
   var themeData = Theme.of(context);
   return themeData.typography.small.merge(themeData.typography.medium).copyWith(
-        color: states.contains(WidgetState.hovered)
-            ? themeData.colorScheme.primary
-            : themeData.colorScheme.mutedForeground,
+        color: _buttonTextColor(context, states),
       );
 }
 
 IconThemeData _buttonTextIconTheme(
     BuildContext context, Set<WidgetState> states) {
-  var themeData = Theme.of(context);
   return IconThemeData(
-    color: states.contains(WidgetState.hovered)
-        ? themeData.colorScheme.primary
-        : themeData.colorScheme.mutedForeground,
+    color: _buttonTextColor(context, states),
   );
 }
 
@@ -1786,8 +1793,10 @@ Decoration _buttonDestructiveDecoration(
     BuildContext context, Set<WidgetState> states) {
   var themeData = Theme.of(context);
   if (states.contains(WidgetState.disabled)) {
+    // muted (like disabled cards), so the box stays visible on the page
+    // background and the mutedForeground label still reads on it.
     return BoxDecoration(
-      color: themeData.colorScheme.primaryForeground,
+      color: themeData.colorScheme.muted,
       borderRadius: BorderRadius.circular(themeData.radiusMd),
     );
   }
