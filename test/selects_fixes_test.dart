@@ -79,6 +79,44 @@ void main() {
 
     expect(tapped, [5]);
   });
+
+  testWidgets('Checkbox takes near-miss taps but not a neighbour\'s',
+      (tester) async {
+    final taps = <String>[];
+    Widget box(String id) => Checkbox(
+          state: CheckboxState.unchecked,
+          onChanged: (_) => taps.add(id),
+        );
+    await tester.pumpWidget(_app(SizedBox(
+      height: 200,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [box('a'), box('b')],
+      ),
+    )));
+    final a = tester.getRect(find.byType(Checkbox).first);
+
+    // 10px above A: outside its 16px box, inside its 44px target.
+    await tester.tapAt(a.topCenter - const Offset(0, 10));
+    // Inside A's box, but also inside B's widened target.
+    await tester.tapAt(a.bottomCenter - const Offset(0, 2));
+
+    expect(taps, ['a', 'a']);
+  });
+
+  testWidgets('Switch takes near-miss taps', (tester) async {
+    bool? changed;
+    await tester.pumpWidget(_app(Switch(
+      value: false,
+      onChanged: (v) => changed = v,
+    )));
+    final rect = tester.getRect(find.byType(Switch));
+
+    // The scaled track is 25px tall, so its 44px target reaches 9.5px above.
+    await tester.tapAt(rect.topCenter - const Offset(0, 8));
+
+    expect(changed, isTrue);
+  });
 }
 
 Finder _text(String data) =>

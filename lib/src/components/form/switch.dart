@@ -1,3 +1,7 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart' show precisionErrorTolerance;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:shadcn_flutter/src/components/layout/focus_outline.dart';
 
@@ -49,7 +53,10 @@ class _SwitchState extends State<Switch> with FormValueSupplier {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      _MinTapArea(child: _buildSwitch(context));
+
+  Widget _buildSwitch(BuildContext context) {
     final theme = Theme.of(context);
     final scaling = theme.scaling;
     return FocusOutline(
@@ -58,6 +65,8 @@ class _SwitchState extends State<Switch> with FormValueSupplier {
       align: 3 * scaling,
       width: 2 * scaling,
       child: GestureDetector(
+        // Opaque: the whole box (gaps and track corners too) takes the tap.
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           widget.onChanged?.call(!widget.value);
         },
@@ -128,5 +137,62 @@ class _SwitchState extends State<Switch> with FormValueSupplier {
         ),
       ),
     );
+  }
+}
+
+const double _kMinTapSize = 44;
+
+// Widens the child's tap target to at least 44x44 (centered) without changing
+// its layout size. Taps still only arrive inside the parent's bounds.
+// Twin of the one in checkbox.dart (separate library, so it cannot be shared).
+class _MinTapArea extends SingleChildRenderObjectWidget {
+  const _MinTapArea({required super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderMinTapArea();
+}
+
+class _RenderMinTapArea extends RenderProxyBox {
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (size.contains(position)) {
+      return super.hitTest(result, position: position);
+    }
+    final area = Rect.fromCenter(
+      center: size.center(Offset.zero),
+      width: math.max(size.width, _kMinTapSize),
+      height: math.max(size.height, _kMinTapSize),
+    );
+    if (size.isEmpty || !area.contains(position) || _siblingTakes(position)) {
+      return false;
+    }
+    // Move the near miss onto the closest point inside the box.
+    return super.hitTest(
+      result,
+      position: Offset(
+        position.dx.clamp(0.0, size.width - precisionErrorTolerance),
+        position.dy.clamp(0.0, size.height - precisionErrorTolerance),
+      ),
+    );
+  }
+
+  // True when a sibling drawn under [position] takes the hit itself, so the
+  // wider area never steals a tap from a neighbour's own box.
+  // ponytail: direct siblings only; a near miss in an empty gap between two
+  // widened targets goes to the later one in paint order.
+  bool _siblingTakes(Offset position) {
+    final self = parentData;
+    if (self is! BoxParentData) return false;
+    final point = position + self.offset;
+    var taken = false;
+    parent?.visitChildren((child) {
+      if (taken || child == this || child is! RenderBox) return;
+      final data = child.parentData;
+      if (data is BoxParentData && (data.offset & child.size).contains(point)) {
+        taken =
+            child.hitTest(BoxHitTestResult(), position: point - data.offset);
+      }
+    });
+    return taken;
   }
 }
