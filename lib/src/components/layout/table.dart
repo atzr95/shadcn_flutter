@@ -1728,7 +1728,7 @@ class RenderTableLayout extends RenderBox
 
   @override
   Size computeDryLayout(BoxConstraints constraints) {
-    return computeTableSize(constraints).size;
+    return constraints.constrain(computeTableSize(constraints).size);
   }
 
   @override
@@ -1926,13 +1926,18 @@ class RenderTableLayout extends RenderBox
         parentData.frozenRow = frozenRow;
         parentData.frozenColumn = frozenColumn;
         parentData.offset = Offset(offsetX, offsetY);
-        child = childAfter(child);
       }
+      child = childAfter(child);
     }
 
     _layoutResult = result;
   }
 
+  /// Resolves the column widths and row heights for [constraints].
+  ///
+  /// [intrinsicComputer] measures intrinsic (and flex) column widths; the
+  /// intrinsic width methods pass it. Row heights always use the max
+  /// intrinsic height at the resolved column widths.
   TableLayoutResult computeTableSize(BoxConstraints constraints,
       [IntrinsicComputer? intrinsicComputer]) {
     double flexWidth = 0;
@@ -1943,8 +1948,9 @@ class RenderTableLayout extends RenderBox
     Map<int, double> columnWidths = {};
     Map<int, double> rowHeights = {};
 
-    int maxRow = 0;
-    int maxColumn = 0;
+    // -1 = no cells, so the size lists below stay empty
+    int maxRow = -1;
+    int maxColumn = -1;
 
     bool hasTightFlexWidth = false;
     bool hasTightFlexHeight = false;
@@ -1966,6 +1972,13 @@ class RenderTableLayout extends RenderBox
       child = childAfter(child);
     }
 
+    // flex sizes only flex on a bounded axis during layout,
+    // otherwise they are measured like intrinsic sizes
+    final bool flexibleWidth =
+        constraints.hasBoundedWidth && intrinsicComputer == null;
+    final bool flexibleHeight =
+        constraints.hasBoundedHeight && intrinsicComputer == null;
+
     // micro-optimization: avoid calculating flexes if there are no flexes
     bool hasFlexWidth = false;
     bool hasFlexHeight = false;
@@ -1973,9 +1986,7 @@ class RenderTableLayout extends RenderBox
     // row
     for (int r = 0; r <= maxRow; r++) {
       final heightConstraint = _height(r);
-      if (heightConstraint is FlexTableSize &&
-          constraints.hasBoundedHeight &&
-          intrinsicComputer == null) {
+      if (heightConstraint is FlexTableSize && flexibleHeight) {
         flexHeight += heightConstraint.flex;
         hasFlexHeight = true;
         if (heightConstraint.fit == FlexFit.tight) {
@@ -1989,7 +2000,7 @@ class RenderTableLayout extends RenderBox
     // column
     for (int c = 0; c <= maxColumn; c++) {
       final widthConstraint = _width(c);
-      if (widthConstraint is FlexTableSize && constraints.hasBoundedWidth) {
+      if (widthConstraint is FlexTableSize && flexibleWidth) {
         flexWidth += widthConstraint.flex;
         hasFlexWidth = true;
         if (widthConstraint.fit == FlexFit.tight) {
@@ -2016,7 +2027,7 @@ class RenderTableLayout extends RenderBox
       remainingHeight = double.infinity;
     }
 
-    // find the proper intrinsic sizes (if any)
+    // find the intrinsic column widths (if any)
     child = lastChild;
     while (child != null) {
       final parentData = child.parentData as TableParentData;
@@ -2025,9 +2036,8 @@ class RenderTableLayout extends RenderBox
         int? row = parentData.row;
         if (column != null && row != null) {
           final widthConstraint = _width(column);
-          final heightConstraint = _height(row);
           if (widthConstraint is IntrinsicTableSize ||
-              (widthConstraint is FlexTableSize && intrinsicComputer != null)) {
+              (widthConstraint is FlexTableSize && !flexibleWidth)) {
             var extent = rowHeights[row] ?? remainingHeight;
             double maxIntrinsicWidth = intrinsicComputer != null
                 ? intrinsicComputer(child, extent)
@@ -2041,34 +2051,19 @@ class RenderTableLayout extends RenderBox
                   max(columnWidths[column + i] ?? 0, maxIntrinsicWidth);
             }
           }
-          if (heightConstraint is IntrinsicTableSize ||
-              (heightConstraint is FlexTableSize &&
-                  intrinsicComputer != null)) {
-            var extent = columnWidths[column] ?? remainingWidth;
-            double maxIntrinsicHeight = intrinsicComputer != null
-                ? intrinsicComputer(child, extent)
-                : child.getMaxIntrinsicHeight(extent);
-            maxIntrinsicHeight = min(maxIntrinsicHeight, remainingHeight);
-            int rowSpan = parentData.rowSpan ?? 1;
-            // distribute the intrinsic height to all rows
-            maxIntrinsicHeight = maxIntrinsicHeight / rowSpan;
-            for (int i = 0; i < rowSpan; i++) {
-              rowHeights[row + i] =
-                  max(columnWidths[row + i] ?? 0, maxIntrinsicHeight);
-            }
-          }
         }
       }
       child = childBefore(child);
     }
 
     double usedColumnWidth = columnWidths.values.fold(0, (a, b) => a + b);
-    double usedRowHeight = rowHeights.values.fold(0, (a, b) => a + b);
     double looseRemainingWidth = remainingWidth;
     double looseRemainingHeight = remainingHeight;
     double looseSpacePerFlexWidth = 0;
     double looseSpacePerFlexHeight = 0;
 
+    // resolve flex column widths before measuring row heights,
+    // so cells are measured at the width they will be laid out with
     if (intrinsicComputer == null) {
       // recalculate remaining space for flexes
       if (constraints.hasBoundedWidth) {
@@ -2081,16 +2076,6 @@ class RenderTableLayout extends RenderBox
       } else {
         looseRemainingWidth = max(0, constraints.minWidth - usedColumnWidth);
       }
-      if (constraints.hasBoundedHeight) {
-        remainingHeight = constraints.maxHeight - usedRowHeight;
-      } else {
-        remainingHeight = double.infinity;
-      }
-      if (constraints.hasInfiniteHeight) {
-        looseRemainingHeight = double.infinity;
-      } else {
-        looseRemainingHeight = max(0, constraints.minHeight - usedRowHeight);
-      }
       if (flexWidth > 0 && remainingWidth > 0) {
         spacePerFlexWidth = remainingWidth / flexWidth;
       } else {
@@ -2098,14 +2083,6 @@ class RenderTableLayout extends RenderBox
       }
       if (flexWidth > 0 && looseRemainingWidth > 0) {
         looseSpacePerFlexWidth = looseRemainingWidth / flexWidth;
-      }
-      if (flexHeight > 0 && remainingHeight > 0) {
-        spacePerFlexHeight = remainingHeight / flexHeight;
-      } else {
-        spacePerFlexHeight = 0;
-      }
-      if (flexHeight > 0 && looseRemainingHeight > 0) {
-        spacePerFlexHeight = looseRemainingHeight / flexHeight;
       }
 
       // calculate space used for flexes
@@ -2122,6 +2099,64 @@ class RenderTableLayout extends RenderBox
           }
         }
       }
+    }
+
+    // find the intrinsic row heights (if any)
+    child = lastChild;
+    while (child != null) {
+      final parentData = child.parentData as TableParentData;
+      if (parentData.computeSize) {
+        int? column = parentData.column;
+        int? row = parentData.row;
+        if (column != null && row != null) {
+          final heightConstraint = _height(row);
+          if (heightConstraint is IntrinsicTableSize ||
+              (heightConstraint is FlexTableSize && !flexibleHeight)) {
+            // measure at the full width of the spanned columns
+            int columnSpan = parentData.columnSpan ?? 1;
+            double extent = 0;
+            for (int i = 0; i < columnSpan; i++) {
+              extent += columnWidths[column + i] ?? 0;
+            }
+            double maxIntrinsicHeight = child.getMaxIntrinsicHeight(extent);
+            maxIntrinsicHeight = min(maxIntrinsicHeight, remainingHeight);
+            int rowSpan = parentData.rowSpan ?? 1;
+            // distribute the intrinsic height to all rows
+            maxIntrinsicHeight = maxIntrinsicHeight / rowSpan;
+            for (int i = 0; i < rowSpan; i++) {
+              rowHeights[row + i] =
+                  max(rowHeights[row + i] ?? 0, maxIntrinsicHeight);
+            }
+          }
+        }
+      }
+      child = childBefore(child);
+    }
+
+    double usedRowHeight = rowHeights.values.fold(0, (a, b) => a + b);
+
+    if (intrinsicComputer == null) {
+      // recalculate remaining space for flexes
+      if (constraints.hasBoundedHeight) {
+        remainingHeight = constraints.maxHeight - usedRowHeight;
+      } else {
+        remainingHeight = double.infinity;
+      }
+      if (constraints.hasInfiniteHeight) {
+        looseRemainingHeight = double.infinity;
+      } else {
+        looseRemainingHeight = max(0, constraints.minHeight - usedRowHeight);
+      }
+      if (flexHeight > 0 && remainingHeight > 0) {
+        spacePerFlexHeight = remainingHeight / flexHeight;
+      } else {
+        spacePerFlexHeight = 0;
+      }
+      if (flexHeight > 0 && looseRemainingHeight > 0) {
+        looseSpacePerFlexHeight = looseRemainingHeight / flexHeight;
+      }
+
+      // calculate space used for flexes
       if (hasFlexHeight) {
         for (int r = 0; r <= maxRow; r++) {
           final heightConstraint = _height(r);
@@ -2139,15 +2174,9 @@ class RenderTableLayout extends RenderBox
 
     // convert the column widths and row heights to a list, where missing values are 0
     List<double> columnWidthsList =
-        List.filled(columnWidths.keys.reduce(max) + 1, 0);
-    columnWidths.forEach((key, value) {
-      columnWidthsList[key] = value;
-    });
+        List.generate(maxColumn + 1, (i) => columnWidths[i] ?? 0);
     List<double> rowHeightsList =
-        List.filled(rowHeights.keys.reduce(max) + 1, 0);
-    rowHeights.forEach((key, value) {
-      rowHeightsList[key] = value;
-    });
+        List.generate(maxRow + 1, (i) => rowHeights[i] ?? 0);
     return TableLayoutResult(
       columnWidths: columnWidthsList,
       rowHeights: rowHeightsList,
@@ -2168,20 +2197,16 @@ class RenderTableLayout extends RenderBox
     }).width;
   }
 
+  // Like Flutter's RenderTable: resolve the columns for [width], then sum the
+  // max intrinsic row heights, so min and max intrinsic height match.
   @override
   double computeMinIntrinsicHeight(double width) {
-    return computeTableSize(BoxConstraints.loose(Size(width, double.infinity)),
-        (child, extent) {
-      return child.getMinIntrinsicHeight(extent);
-    }).height;
+    return computeTableSize(BoxConstraints.tightForFinite(width: width)).height;
   }
 
   @override
   double computeMaxIntrinsicHeight(double width) {
-    return computeTableSize(BoxConstraints.loose(Size(width, double.infinity)),
-        (child, extent) {
-      return child.getMaxIntrinsicHeight(extent);
-    }).height;
+    return computeMinIntrinsicHeight(width);
   }
 
   // delegate from TableLayoutResult, with read-only view
