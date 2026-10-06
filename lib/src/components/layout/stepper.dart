@@ -152,7 +152,11 @@ class _StepVariantCircle extends StepVariant {
                   children: [
                     properties.steps[i].icon ?? const StepNumber(),
                     Gap(8 * scaling),
-                    properties.size.wrapper(context, properties.steps[i].title),
+                    // Flexible: long titles wrap instead of overflowing.
+                    Flexible(
+                      child: properties.size
+                          .wrapper(context, properties.steps[i].title),
+                    ),
                   ],
                 ),
                 Gap(8 * scaling),
@@ -167,7 +171,9 @@ class _StepVariantCircle extends StepVariant {
                         start: 0,
                         bottom: 0,
                         child: SizedBox(
-                          width: properties.size.size,
+                          // Scaled like the StepNumber circle above it, so
+                          // the rail line stays centred under the circle.
+                          width: properties.size.size * scaling,
                           child: i == properties.steps.length - 1
                               ? null
                               : AnimatedBuilder(
@@ -205,9 +211,9 @@ class _StepVariantCircle extends StepVariant {
                                 // same way. A physical `left` left the RTL rail
                                 // drawing straight through the step content.
                                 margin: EdgeInsetsDirectional.only(
-                                  start: properties.size.size,
+                                  start: properties.size.size * scaling,
                                 ),
-                                child: child!,
+                                child: child ?? const SizedBox(),
                               ),
                               firstCurve: const Interval(0.0, 0.6,
                                   curve: Curves.fastOutSlowIn),
@@ -396,7 +402,11 @@ class _StepVariantCircleAlternative extends StepVariant {
                   children: [
                     properties.steps[i].icon ?? const StepNumber(),
                     Gap(8 * scaling),
-                    properties.size.wrapper(context, properties.steps[i].title),
+                    // Flexible: long titles wrap instead of overflowing.
+                    Flexible(
+                      child: properties.size
+                          .wrapper(context, properties.steps[i].title),
+                    ),
                   ],
                 ),
                 Gap(8 * scaling),
@@ -411,7 +421,9 @@ class _StepVariantCircleAlternative extends StepVariant {
                         start: 0,
                         bottom: 0,
                         child: SizedBox(
-                          width: properties.size.size,
+                          // Scaled like the StepNumber circle above it, so
+                          // the rail line stays centred under the circle.
+                          width: properties.size.size * scaling,
                           child: i == properties.steps.length - 1
                               ? null
                               : AnimatedBuilder(
@@ -449,9 +461,9 @@ class _StepVariantCircleAlternative extends StepVariant {
                                 // same way. A physical `left` left the RTL rail
                                 // drawing straight through the step content.
                                 margin: EdgeInsetsDirectional.only(
-                                  start: properties.size.size,
+                                  start: properties.size.size * scaling,
                                 ),
-                                child: child!,
+                                child: child ?? const SizedBox(),
                               ),
                               firstCurve: const Interval(0.0, 0.6,
                                   curve: Curves.fastOutSlowIn),
@@ -576,9 +588,12 @@ class _StepVariantLine extends StepVariant {
                             );
                           }),
                       Gap(16 * scaling),
-                      properties.size
-                          .wrapper(context, properties.steps[i].title)
-                          .withPadding(vertical: 8 * scaling),
+                      // Flexible: long titles wrap instead of overflowing.
+                      Flexible(
+                        child: properties.size
+                            .wrapper(context, properties.steps[i].title)
+                            .withPadding(vertical: 8 * scaling),
+                      ),
                     ],
                   ),
                 ),
@@ -595,7 +610,7 @@ class _StepVariantLine extends StepVariant {
                             height: 0,
                           ),
                           secondChild: Container(
-                            child: child!,
+                            child: child ?? const SizedBox(),
                           ),
                           firstCurve: const Interval(0.0, 0.6,
                               curve: Curves.fastOutSlowIn),
