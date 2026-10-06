@@ -756,7 +756,7 @@ class _TextThenWidget extends StatelessWidget {
       overflow: text.overflow ??
           effectiveTextStyle?.overflow ??
           defaultTextStyle.overflow,
-      textScaler: text.textScaler ?? TextScaler.noScaling,
+      textScaler: text.textScaler ?? MediaQuery.textScalerOf(context),
       maxLines: text.maxLines ?? defaultTextStyle.maxLines,
       strutStyle: text.strutStyle,
       textWidthBasis: text.textWidthBasis ?? defaultTextStyle.textWidthBasis,
