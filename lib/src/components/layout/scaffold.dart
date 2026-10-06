@@ -257,6 +257,10 @@ class AppBar extends StatefulWidget {
 }
 
 class _AppBarState extends State<AppBar> {
+  // Keeps the bar's state (e.g. a search field) when the blur wrapper comes
+  // and goes.
+  final GlobalKey _barKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -267,6 +271,7 @@ class _AppBarState extends State<AppBar> {
     final backgroundColor = widget.backgroundColor ??
         theme.colorScheme.background.scaleAlpha(surfaceOpacity ?? 1);
     Widget bar = Container(
+      key: _barKey,
       color: backgroundColor,
       alignment: widget.alignment,
       padding: widget.padding ??
