@@ -102,6 +102,8 @@ class _HoverState extends State<Hover> with SingleTickerProviderStateMixin {
 
   late AnimationController _controller;
   int? _enterTime;
+  // True between onHover(true) and onHover(false).
+  bool _shown = false;
 
   @override
   void initState() {
@@ -139,14 +141,23 @@ class _HoverState extends State<Hover> with SingleTickerProviderStateMixin {
 
   void _onStatusChanged(AnimationStatus status) {
     if (status == AnimationStatus.completed) {
+      _shown = true;
       widget.onHover(true);
     } else if (status == AnimationStatus.dismissed) {
+      _shown = false;
       widget.onHover(false);
     }
   }
 
   @override
   void dispose() {
+    if (_shown) {
+      // Removed while shown (e.g. route popped during the touch hold): the
+      // 'dismissed' status will never come, so hide it here. Deferred because
+      // the tree is locked during dispose.
+      final onHover = widget.onHover;
+      WidgetsBinding.instance.addPostFrameCallback((_) => onHover(false));
+    }
     _controller.dispose();
     super.dispose();
   }

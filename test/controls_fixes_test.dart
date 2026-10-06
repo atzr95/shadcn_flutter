@@ -118,35 +118,49 @@ void main() {
     expectInnerCornersSquare();
   });
 
-  testWidgets('Hover: touch long press stays shown ~1.5s after release',
-      (tester) async {
-    final events = <bool>[];
-    await tester.pumpWidget(_app(
-      Hover(
-        // Tooltip passes this short value; the touch hold must not use it.
-        showDuration: const Duration(milliseconds: 200),
-        onHover: events.add,
-        child: const ColoredBox(
-          color: Color(0xFF000000),
-          child: SizedBox(width: 40, height: 40),
+  group('Hover touch hold', () {
+    late List<bool> events;
+
+    // Long-presses a Hover until it shows, then lifts the finger.
+    Future<void> showThenRelease(WidgetTester tester) async {
+      events = <bool>[];
+      await tester.pumpWidget(_app(
+        Hover(
+          // Tooltip passes this short value; the touch hold must not use it.
+          showDuration: const Duration(milliseconds: 200),
+          onHover: events.add,
+          child: const ColoredBox(
+            color: Color(0xFF000000),
+            child: SizedBox(width: 40, height: 40),
+          ),
         ),
-      ),
-      platform: TargetPlatform.android,
-    ));
+        platform: TargetPlatform.android,
+      ));
+      final gesture =
+          await tester.startGesture(tester.getCenter(find.byType(Hover)));
+      // First pump starts the ticker clock, the second advances it.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(events, [true]);
+      await gesture.up();
+      await tester.pump();
+    }
 
-    final gesture =
-        await tester.startGesture(tester.getCenter(find.byType(Hover)));
-    // First pump starts the ticker clock, the second advances it.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(events, [true]);
+    testWidgets('stays shown ~1.5s after release', (tester) async {
+      await showThenRelease(tester);
+      await tester.pump(const Duration(milliseconds: 1000));
+      expect(events, [true]);
 
-    await gesture.up();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 1000));
-    expect(events, [true]);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(events, [true, false]);
+    });
 
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(events, [true, false]);
+    testWidgets('hides when removed during the hold', (tester) async {
+      await showThenRelease(tester);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpWidget(_app(const SizedBox()));
+      await tester.pump();
+      expect(events, [true, false]);
+    });
   });
 }
