@@ -103,22 +103,31 @@ class TextField extends StatefulWidget {
 }
 
 class _TextFieldState extends State<TextField> with FormValueSupplier {
-  late FocusNode _focusNode;
   final GlobalKey _key = GlobalKey();
-  late TextEditingController _controller;
-  late UndoHistoryController _undoHistoryController;
-  late WidgetStatesController _statesController;
+
+  // Created only when the caller passes none; only these are disposed here.
+  FocusNode? _localFocusNode;
+  TextEditingController? _localController;
+  UndoHistoryController? _localUndoController;
+  WidgetStatesController? _localStatesController;
+
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_localFocusNode ??= FocusNode());
+  TextEditingController get _controller =>
+      widget.controller ?? (_localController ??= TextEditingController());
+  UndoHistoryController get _undoHistoryController =>
+      widget.undoController ??
+      (_localUndoController ??= UndoHistoryController());
+  WidgetStatesController get _statesController =>
+      widget.statesController ??
+      (_localStatesController ??= WidgetStatesController());
 
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ?? TextEditingController();
-    _undoHistoryController = widget.undoController ?? UndoHistoryController();
-    _statesController = widget.statesController ?? WidgetStatesController();
     if (widget.initialValue != null) {
       _controller.text = widget.initialValue!;
     }
-    _focusNode = widget.focusNode ?? FocusNode();
     _focusNode.addListener(_onFocusChanged);
     _controller.addListener(_onValueChanged);
   }
@@ -138,17 +147,29 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
   void didUpdateWidget(covariant TextField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusNode != oldWidget.focusNode) {
-      oldWidget.focusNode?.removeListener(_onFocusChanged);
-      _focusNode = widget.focusNode ?? FocusNode();
+      // A local node is kept until dispose, like material.TextField does.
+      (oldWidget.focusNode ?? _localFocusNode)?.removeListener(_onFocusChanged);
       _focusNode.addListener(_onFocusChanged);
     }
     if (widget.controller != oldWidget.controller) {
-      _controller.removeListener(_onValueChanged);
-      _controller = widget.controller ?? TextEditingController();
+      final oldController = oldWidget.controller ?? _localController!;
+      oldController.removeListener(_onValueChanged);
+      if (widget.controller == null) {
+        // Keep the text the user sees when the caller drops its controller.
+        _localController = TextEditingController.fromValue(oldController.value);
+      } else if (oldWidget.controller == null) {
+        _localController?.dispose();
+        _localController = null;
+      }
       _controller.addListener(_onValueChanged);
     }
-    if (widget.undoController != oldWidget.undoController) {
-      _undoHistoryController = widget.undoController ?? UndoHistoryController();
+    if (widget.undoController != null && oldWidget.undoController == null) {
+      _localUndoController?.dispose();
+      _localUndoController = null;
+    }
+    if (widget.statesController != null && oldWidget.statesController == null) {
+      _localStatesController?.dispose();
+      _localStatesController = null;
     }
   }
 
@@ -156,6 +177,10 @@ class _TextFieldState extends State<TextField> with FormValueSupplier {
   void dispose() {
     _focusNode.removeListener(_onFocusChanged);
     _controller.removeListener(_onValueChanged);
+    _localFocusNode?.dispose();
+    _localController?.dispose();
+    _localUndoController?.dispose();
+    _localStatesController?.dispose();
     super.dispose();
   }
 
