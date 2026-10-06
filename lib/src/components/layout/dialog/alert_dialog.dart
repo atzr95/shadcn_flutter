@@ -55,11 +55,14 @@ class _AlertDialogState extends State<AlertDialog> {
   Widget build(BuildContext context) {
     var themeData = Theme.of(context);
     var scaling = themeData.scaling;
-    MediaQuery.of(context);
 
     return material.Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.zero,
+      // Fullscreen stays edge to edge. A card dialog keeps 16px off the screen
+      // edges and clear of the status bar and home indicator.
+      insetPadding: widget.isFullscreen
+          ? EdgeInsets.zero
+          : MediaQuery.paddingOf(context) + EdgeInsets.all(16 * scaling),
       child: ModalContainer(
         borderRadius:
             widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
@@ -120,18 +123,19 @@ class _AlertDialogState extends State<AlertDialog> {
                   Padding(
                     padding: widget.isFullscreen
                         ? EdgeInsets.only(
-                            bottom: MediaQuery.of(context).padding.bottom +
+                            bottom: MediaQuery.paddingOf(context).bottom +
                                 16 * scaling,
                             right: 16 * scaling,
                             left: 16 * scaling,
                           )
                         : EdgeInsets.zero,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children:
-                          join(widget.actions!, SizedBox(width: 8 * scaling))
-                              .toList(),
+                    // Wraps the buttons into a right-aligned column when
+                    // they do not fit in one row (narrow phones).
+                    child: OverflowBar(
+                      spacing: 8 * scaling,
+                      overflowSpacing: 8 * scaling,
+                      overflowAlignment: OverflowBarAlignment.end,
+                      children: widget.actions!,
                     ),
                   ),
               ],
