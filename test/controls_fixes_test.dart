@@ -59,18 +59,31 @@ void main() {
   testWidgets(
       'ButtonGroup: const children, RTL inner corners, '
       'corners kept after theme change', (tester) async {
-    Widget group(ColorScheme colorScheme) => ShadcnApp(
-          theme: ThemeData(colorScheme: colorScheme, radius: 0.5),
-          home: const Center(
-            child: Directionality(
-              textDirection: TextDirection.rtl,
-              child: ButtonGroup(children: [
-                PrimaryButton(key: ValueKey('first'), child: Text('A')),
-                PrimaryButton(key: ValueKey('last'), child: Text('B')),
-              ]),
-            ),
+    // Theme swapped below a const group, so the group and its overrides are
+    // not rebuilt; only the buttons' dependencies change.
+    final dark = ValueNotifier(false);
+    addTearDown(dark.dispose);
+    await tester.pumpWidget(_app(
+      ValueListenableBuilder<bool>(
+        valueListenable: dark,
+        builder: (context, isDark, child) => Theme(
+          data: ThemeData(
+            colorScheme:
+                isDark ? ColorSchemes.darkZinc() : ColorSchemes.lightZinc(),
+            radius: 0.5,
           ),
-        );
+          child: child!,
+        ),
+        child: const Directionality(
+          textDirection: TextDirection.rtl,
+          child: ButtonGroup(children: [
+            PrimaryButton(key: ValueKey('first'), child: Text('A')),
+            PrimaryButton(key: ValueKey('last'), child: Text('B')),
+          ]),
+        ),
+      ),
+    ));
+
     BorderRadius radiusOf(String key) {
       final container = tester.widget<AnimatedContainer>(find.descendant(
         of: find.byKey(ValueKey(key)),
@@ -92,10 +105,9 @@ void main() {
       expect(last.topLeft, isNot(Radius.zero));
     }
 
-    await tester.pumpWidget(group(ColorSchemes.lightZinc()));
     expectInnerCornersSquare();
 
-    await tester.pumpWidget(group(ColorSchemes.darkZinc()));
+    dark.value = true;
     await tester.pump();
     expectInnerCornersSquare();
   });
