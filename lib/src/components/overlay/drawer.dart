@@ -732,25 +732,34 @@ DrawerOverlayCompleter<T?> openRawDrawer<T>({
   WidgetBuilder? backdropBuilder,
   bool useSafeArea = true,
 }) {
-  DrawerLayerData? parentLayer =
-      DrawerOverlay.maybeFind(context, useRootDrawerOverlay);
+  // Only a DrawerOverlay that is a real ancestor draws above `context`. A
+  // Data lookup can return one copied in by Data.capture (e.g. the page's
+  // overlay seen from inside a dialog), whose entries render under the dialog.
+  var layer = context.findAncestorStateOfType<_DrawerOverlayState>();
+  if (useRootDrawerOverlay) {
+    for (var l = layer;
+        l != null;
+        l = l.context.findAncestorStateOfType<_DrawerOverlayState>()) {
+      layer = l;
+    }
+  }
   CapturedThemes? themes;
   CapturedData? data;
-  if (parentLayer != null) {
-    try {
-      themes = InheritedTheme.capture(
-          from: context, to: parentLayer.overlay.context);
-      data = Data.capture(from: context, to: parentLayer.overlay.context);
-    } catch (e) {
-      // If theme capture fails, capture from current context
-      themes = InheritedTheme.capture(from: context, to: context);
-      data = Data.capture(from: context, to: context);
-    }
+  OverlayState? rootOverlay;
+  if (layer != null) {
+    themes = InheritedTheme.capture(from: context, to: layer.context);
+    data = Data.capture(from: context, to: layer.context);
   } else {
-    parentLayer =
-        DrawerOverlay.maybeFindMessenger(context, useRootDrawerOverlay);
+    // A caller above the Navigator can use a DrawerOverlay below it.
+    layer = DrawerOverlay.maybeFindMessenger(context)?.overlay;
+    if (layer == null) {
+      // None at all (e.g. a card dialog has no Scaffold): host one in the
+      // root Overlay, above every route, the way popovers are shown.
+      rootOverlay = Overlay.of(context, rootOverlay: true);
+      themes = InheritedTheme.capture(from: context, to: rootOverlay.context);
+      data = Data.capture(from: context, to: rootOverlay.context);
+    }
   }
-  assert(parentLayer != null, 'No DrawerOverlay found in the widget tree');
   final completer = Completer<T?>();
   final entry = DrawerOverlayEntry(
     builder: (context, extraSize, size, padding, stackIndex) {
@@ -882,12 +891,65 @@ DrawerOverlayCompleter<T?> openRawDrawer<T>({
     completer: completer,
     position: position,
   );
-  final overlay = parentLayer!.overlay;
-  overlay.addEntry(entry);
-  completer.future.whenComplete(() {
-    overlay.removeEntry(entry);
-  });
+  if (layer != null) {
+    final overlay = layer;
+    overlay.addEntry(entry);
+    completer.future.whenComplete(() {
+      overlay.removeEntry(entry);
+    });
+  } else {
+    _showInRootOverlay(context, rootOverlay!, entry);
+  }
   return DrawerOverlayCompleter<T?>(entry);
+}
+
+// Shows [entry] in a DrawerOverlay inserted into [overlay] and removes it
+// once the entry completes. Used when no DrawerOverlay is above [context].
+void _showInRootOverlay(
+    BuildContext context, OverlayState overlay, DrawerOverlayEntry entry) {
+  final host = GlobalKey<_DrawerOverlayState>();
+  final overlayEntry = OverlayEntry(
+    // Opaque: taps outside the drawer must not reach the dialog below.
+    builder: (_) => Listener(
+      behavior: HitTestBehavior.opaque,
+      child: _DrawerOverlayHost(key: host, entry: entry),
+    ),
+  );
+  overlay.insert(overlayEntry);
+  // The host is not in a route, so DrawerOverlay's PopScope cannot see the
+  // back button. Let the caller's route forward it instead.
+  final route = ModalRoute.of(context);
+  final popEntry = _DrawerHostPopEntry(host);
+  route?.registerPopEntry(popEntry);
+  entry.completer.future.whenComplete(() {
+    route?.unregisterPopEntry(popEntry);
+    overlayEntry.remove();
+    overlayEntry.dispose();
+  });
+}
+
+/// A [DrawerOverlay] that starts with [entry] shown; see [openRawDrawer].
+class _DrawerOverlayHost extends DrawerOverlay {
+  final DrawerOverlayEntry entry;
+
+  const _DrawerOverlayHost({super.key, required this.entry})
+      : super(child: const SizedBox.expand());
+}
+
+// Back on the caller's route closes the top drawer of a root-hosted overlay
+// (and blocks the pop) while that overlay is open.
+class _DrawerHostPopEntry extends PopEntry<Object?> {
+  final GlobalKey<_DrawerOverlayState> host;
+
+  _DrawerHostPopEntry(this.host);
+
+  @override
+  final ValueNotifier<bool> canPopNotifier = ValueNotifier(false);
+
+  @override
+  void onPopInvokedWithResult(bool didPop, Object? result) {
+    host.currentState?._closeTop(result);
+  }
 }
 
 class _MountedOverlayEntryData {
@@ -956,6 +1018,28 @@ class _DrawerOverlayState extends State<DrawerOverlay> {
   final List<DrawerOverlayEntry> _entries = [];
   final GlobalKey backdropKey = GlobalKey();
 
+  @override
+  void initState() {
+    super.initState();
+    final widget = this.widget;
+    if (widget is _DrawerOverlayHost) {
+      _entries.add(widget.entry);
+    }
+  }
+
+  // Back button: close the top entry if its barrier may dismiss it.
+  void _closeTop(Object? result) {
+    if (_entries.isEmpty) return;
+    var last = _entries.last;
+    if (!last.barrierDismissible) return;
+    var state = last.key.currentState;
+    if (state != null) {
+      state.close(result);
+    } else if (!last.completer.isCompleted) {
+      last.completer.complete(result);
+    }
+  }
+
   void addEntry(DrawerOverlayEntry entry) {
     setState(() {
       _entries.add(entry);
@@ -998,19 +1082,7 @@ class _DrawerOverlayState extends State<DrawerOverlay> {
       // instead, the overlay should be closed first
       // once everything is closed, then this can be popped
       canPop: _entries.isEmpty,
-      onPopInvokedWithResult: (didPop, result) {
-        if (_entries.isNotEmpty) {
-          var last = _entries.last;
-          if (last.barrierDismissible) {
-            var state = last.key.currentState;
-            if (state != null) {
-              state.close(result);
-            } else {
-              last.completer.complete(result);
-            }
-          }
-        }
-      },
+      onPopInvokedWithResult: (didPop, result) => _closeTop(result),
       child: ForwardableData(
         data: DrawerLayerData(this, parentLayer),
         child: child,
