@@ -27,10 +27,12 @@ OverlayCompleter<T?> showDropdown<T>({
 }) {
   final theme = Theme.of(context);
   final scaling = theme.scaling;
-  final GlobalKey key = GlobalKey();
+  final GlobalKey regionKey = GlobalKey();
   final overlayManager = OverlayManager.of(context);
   return overlayManager.showMenu<T>(
     context: context,
+    key: key,
+    rootOverlay: rootOverlay,
     alignment: alignment ?? Alignment.topCenter,
     offset: offset ?? (const Offset(0, 4) * scaling),
     follow: follow,
@@ -47,7 +49,7 @@ OverlayCompleter<T?> showDropdown<T>({
     position: position,
     anchorAlignment: anchorAlignment,
     consumeOutsideTaps: consumeOutsideTaps,
-    regionGroupId: key,
+    regionGroupId: regionKey,
     modal: modal,
     dismissBackdropFocus: dismissBackdropFocus,
     overlayBarrier: OverlayBarrier(
@@ -55,7 +57,7 @@ OverlayCompleter<T?> showDropdown<T>({
     ),
     builder: (context) {
       return Data.inherit(
-        data: DropdownMenuData(key),
+        data: DropdownMenuData(regionKey),
         child: builder(context),
       );
     },
