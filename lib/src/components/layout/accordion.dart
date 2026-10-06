@@ -17,6 +17,12 @@ class _AccordionState extends State<Accordion> {
   final ValueNotifier<_AccordionItemState?> _expanded = ValueNotifier(null);
 
   @override
+  void dispose() {
+    _expanded.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scaling = theme.scaling;
@@ -31,7 +37,7 @@ class _AccordionState extends State<Accordion> {
                 ...join(
                     widget.items,
                     Container(
-                      color: theme.colorScheme.muted,
+                      color: accTheme?.dividerColor ?? theme.colorScheme.muted,
                       height: accTheme?.dividerHeight ?? 1 * scaling,
                     )),
                 const Divider(),
@@ -241,8 +247,12 @@ class _AccordionItemState extends State<AccordionItem>
   }
 
   void _dispatchToggle() {
-    if (accordion?._expanded.value == this) {
+    // Toggle from this item's own state: an item opened by
+    // [AccordionItem.expanded] is not the accordion's value, so clearing that
+    // value alone would not close it.
+    if (_expanded.value) {
       accordion?._expanded.value = null;
+      _collapse();
     } else {
       accordion?._expanded.value = this;
     }
@@ -299,6 +309,8 @@ class _AccordionTriggerState extends State<AccordionTrigger> {
       _item?._expanded.removeListener(_onExpandedChanged);
       newItem._expanded.addListener(_onExpandedChanged);
       _item = newItem;
+      // Start from the item's state, e.g. AccordionItem(expanded: true).
+      _expanded = newItem._expanded.value;
     }
   }
 
@@ -380,9 +392,10 @@ class _AccordionTriggerState extends State<AccordionTrigger> {
                 ),
                 SizedBox(width: accTheme?.iconGap ?? 18 * scaling),
                 TweenAnimationBuilder(
-                    tween: _expanded
-                        ? Tween(begin: 1.0, end: 0)
-                        : Tween(begin: 0, end: 1.0),
+                    // No begin: the first build shows the end angle at once
+                    // (no spin on mount); later toggles animate from the
+                    // current angle.
+                    tween: Tween<double>(end: _expanded ? 0 : 1),
                     duration: accTheme?.duration ?? kDefaultDuration,
                     builder: (context, value, child) {
                       return Transform.rotate(

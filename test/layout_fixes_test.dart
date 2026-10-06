@@ -38,6 +38,51 @@ void main() {
     expect(tall - short, 200);
   });
 
+  testWidgets('AccordionItem(expanded: true) shows open and closes in one tap',
+      (tester) async {
+    await tester.pumpWidget(_app(const Accordion(items: [
+      AccordionItem(
+        expanded: true,
+        trigger: AccordionTrigger(child: Text('Open')),
+        content: Text('A'),
+      ),
+      AccordionItem(
+        trigger: AccordionTrigger(child: Text('Closed')),
+        content: Text('B'),
+      ),
+    ])));
+    const open = 0, closed = 1; // item indexes
+    // cos of the chevron's rotation: 1 = pointing up (open), -1 = down.
+    double chevron(int item) => tester
+        .widget<Transform>(find
+            .descendant(
+              of: find.byType(AccordionTrigger).at(item),
+              matching: find.byType(Transform),
+            )
+            .first)
+        .transform
+        .storage[0];
+    double openness(int item) => tester
+        .widget<SizeTransition>(find.descendant(
+          of: find.byType(AccordionItem).at(item),
+          matching: find.byType(SizeTransition),
+        ))
+        .sizeFactor
+        .value;
+
+    // The very first frame already has the final angles (no spin on mount).
+    expect(chevron(closed), closeTo(-1, 1e-9));
+    expect(chevron(open), closeTo(1, 1e-9));
+    await tester.pumpAndSettle();
+    expect(chevron(open), closeTo(1, 1e-9));
+    expect(openness(open), 1);
+
+    await tester.tap(find.byType(AccordionTrigger).at(open));
+    await tester.pumpAndSettle();
+    expect(openness(open), 0);
+    expect(chevron(open), closeTo(-1, 1e-9));
+  });
+
   group('Pagination window', () {
     Pagination pagination(int page, int totalPages, int maxPages) =>
         Pagination(
