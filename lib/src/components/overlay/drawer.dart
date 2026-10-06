@@ -195,10 +195,16 @@ class _DrawerWrapperState extends State<DrawerWrapper>
         : widget.size;
   }
 
+  // True once the entry this drawer is shown in starts closing. A drag must
+  // then leave the drawer alone: moving it would stop the exit animation, and
+  // the entry would never finish closing.
+  bool get _entryClosing =>
+      Data.maybeFind<_MountedOverlayEntryData>(context)?.state._closing != null;
+
   // Moves the drawer by [delta] px along its opening direction (negative
   // closes); past fully open it stretches instead.
   void _dragBy(ControlledAnimation? controlled, double delta, double extent) {
-    if (controlled == null) {
+    if (controlled == null || _entryClosing) {
       return;
     }
     double newValue = controlled.value + delta / extent;
@@ -221,6 +227,9 @@ class _DrawerWrapperState extends State<DrawerWrapper>
     }
     const flingVelocity = 700.0;
     _extraOffset.forward(0, Curves.easeOut);
+    if (_entryClosing) {
+      return;
+    }
     if (velocity < -flingVelocity ||
         (velocity <= flingVelocity &&
             controlled.value + _extraOffset.value < 0.5)) {
@@ -1152,6 +1161,8 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
 
   // Set by the first close(); later calls return it, and the content ignores
   // taps while it slides out (a double tap must not run an item twice).
+  // DrawerWrapper stops dragging once this is set, so nothing can cancel the
+  // exit animation and leave this future pending.
   Future<void>? _closing;
 
   Future<void> close([T? result]) {
