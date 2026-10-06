@@ -74,7 +74,11 @@ class Chip extends StatelessWidget {
               horizontal: theme.scaling * 8, vertical: theme.scaling * 4);
         },
       ),
-      onPressed: onPressed ?? () {},
+      onPressed: onPressed,
+      // Like badges: a chip without onPressed is static, not disabled, so it
+      // keeps its normal colors but gets no press, sound or hover feedback.
+      enabled: true,
+      disableHoverEffect: onPressed == null,
       leading: leading,
       trailing: trailing,
       child: child,
