@@ -16,8 +16,7 @@ class MediaQueryVisibility extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final size = mediaQuery.size.width;
+    final size = MediaQuery.sizeOf(context).width;
     if (minWidth != null && size < minWidth!) {
       return SizedBox(
         child: alternateChild,
