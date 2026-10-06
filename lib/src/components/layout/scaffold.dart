@@ -53,6 +53,7 @@ class ScaffoldState extends State<Scaffold> {
     return Container(
       color: widget.headerBackgroundColor,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Column(
@@ -127,6 +128,7 @@ class ScaffoldState extends State<Scaffold> {
       child: Container(
         color: widget.footerBackgroundColor,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var i = 0; i < widget.footers.length; i++)
@@ -426,12 +428,19 @@ class _ScaffoldRenderFlex extends RenderBox
     RenderBox content = (header.parentData as _ScaffoldParentData).nextSibling!;
     RenderBox footer = (content.parentData as _ScaffoldParentData).nextSibling!;
     final constraints = this.constraints;
-    header.layout(constraints, parentUsesSize: true);
-    footer.layout(constraints, parentUsesSize: true);
+    // Header and footer span the full width but only take the height they
+    // need, so a header background does not cover the page.
+    final barConstraints = BoxConstraints(
+      minWidth: constraints.maxWidth,
+      maxWidth: constraints.maxWidth,
+      maxHeight: constraints.maxHeight,
+    );
+    header.layout(barConstraints, parentUsesSize: true);
+    footer.layout(barConstraints, parentUsesSize: true);
     BoxConstraints contentConstraints;
     Offset contentOffset;
-    double footerSize = footer.getMaxIntrinsicHeight(double.infinity);
-    double headerSize = header.getMaxIntrinsicHeight(double.infinity);
+    double footerSize = footer.size.height;
+    double headerSize = header.size.height;
     switch ((_floatingHeader, _floatingFooter)) {
       case (true, true): // floating header and footer
         contentConstraints = constraints;
