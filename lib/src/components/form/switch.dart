@@ -67,9 +67,10 @@ class _SwitchState extends State<Switch> with FormValueSupplier {
       child: GestureDetector(
         // Opaque: the whole box (gaps and track corners too) takes the tap.
         behavior: HitTestBehavior.opaque,
-        onTap: () {
-          widget.onChanged?.call(!widget.value);
-        },
+        // Null when disabled, so the row around a disabled Switch gets taps.
+        onTap: widget.onChanged == null
+            ? null
+            : () => widget.onChanged!(!widget.value),
         child: FocusableActionDetector(
           enabled: widget.onChanged != null,
           onShowFocusHighlight: (value) {
