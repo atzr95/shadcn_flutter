@@ -39,6 +39,12 @@ class ToggleState extends State<Toggle> {
   }
 
   @override
+  void dispose() {
+    statesController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Button(
         statesController: statesController,
@@ -145,10 +151,14 @@ class SelectedButton extends StatefulWidget {
 // toggle button is just ghost button
 class SelectedButtonState extends State<SelectedButton> {
   late WidgetStatesController statesController;
+  // Only set when we created the controller; disposed in [dispose].
+  WidgetStatesController? _internalController;
+
   @override
   void initState() {
     super.initState();
-    statesController = widget.statesController ?? WidgetStatesController();
+    statesController = widget.statesController ??
+        (_internalController = WidgetStatesController());
     statesController.update(WidgetState.selected, widget.value);
   }
 
@@ -156,12 +166,19 @@ class SelectedButtonState extends State<SelectedButton> {
   void didUpdateWidget(SelectedButton oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.statesController != widget.statesController) {
-      statesController = widget.statesController ?? WidgetStatesController();
+      statesController = widget.statesController ??
+          (_internalController ??= WidgetStatesController());
       statesController.update(WidgetState.selected, widget.value);
     }
     if (oldWidget.value != widget.value) {
       statesController.update(WidgetState.selected, widget.value);
     }
+  }
+
+  @override
+  void dispose() {
+    _internalController?.dispose();
+    super.dispose();
   }
 
   @override
