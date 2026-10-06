@@ -192,12 +192,39 @@ class PopoverOverlayHandler extends OverlayHandler {
       },
     );
     popoverEntry.initialize(overlayEntry, barrierEntry);
+    // System back (Android) closes a modal popover instead of popping the
+    // route under it, e.g. the dialog holding a Select.
+    final route = modal ? ModalRoute.of(context) : null;
+    if (route != null) {
+      final popEntry = _PopoverPopEntry(isClosed, () {
+        if (isClosed.value) return;
+        isClosed.value = true;
+        completer.complete();
+      });
+      route.registerPopEntry(popEntry);
+      popoverEntry._onRemove = () {
+        if (route.isActive) route.unregisterPopEntry(popEntry);
+      };
+    }
     if (barrierEntry != null) {
       overlay.insert(barrierEntry);
     }
     overlay.insert(overlayEntry);
     return popoverEntry;
   }
+}
+
+/// Blocks route pops while its popover is open; a pop attempt closes the
+/// popover instead. [canPopNotifier] is the popover's closed flag.
+class _PopoverPopEntry extends PopEntry<Object?> {
+  _PopoverPopEntry(this.canPopNotifier, this.onPop);
+
+  @override
+  final ValueNotifier<bool> canPopNotifier;
+  final VoidCallback onPop;
+
+  @override
+  void onPopInvokedWithResult(bool didPop, Object? result) => onPop();
 }
 
 class PopoverAnchor extends StatefulWidget {
@@ -617,6 +644,8 @@ class OverlayPopoverEntry<T> implements OverlayCompleter<T> {
 
   bool _removed = false;
   bool _disposed = false;
+  // Runs once on remove; unregisters the back-button handler.
+  VoidCallback? _onRemove;
 
   @override
   bool get isCompleted => completer.isCompleted;
@@ -632,6 +661,7 @@ class OverlayPopoverEntry<T> implements OverlayCompleter<T> {
     _removed = true;
     _overlayEntry.remove();
     _barrierEntry?.remove();
+    _onRemove?.call();
   }
 
   @override
