@@ -94,39 +94,23 @@ class LinearProgressIndicator extends StatelessWidget {
           double end = _line1Head.transform(value);
           double start2 = _line2Tail.transform(value);
           double end2 = _line2Head.transform(value);
-          return AnimatedValueBuilder(
-              duration: kDefaultDuration,
-              lerp: _LinearProgressIndicatorProperties.lerp,
-              value: _LinearProgressIndicatorProperties(
-                start: start,
-                end: end,
-                start2: start2,
-                end2: end2,
-                color: color ?? theme.colorScheme.primary,
-                backgroundColor: backgroundColor ??
-                    theme.colorScheme.primary.scaleAlpha(0.2),
-                showSparks: showSparks,
-                sparksColor: color ?? theme.colorScheme.primary,
-                sparksRadius: theme.scaling * 16,
-                textDirection: directionality,
-              ),
-              builder: (context, prop, child) {
-                return CustomPaint(
-                  painter: _LinearProgressIndicatorPainter(
-                    // do not animate start and end value
-                    start: start,
-                    end: end,
-                    start2: start2,
-                    end2: end2,
-                    color: prop.color,
-                    backgroundColor: prop.backgroundColor,
-                    showSparks: prop.showSparks,
-                    sparksColor: prop.sparksColor,
-                    sparksRadius: prop.sparksRadius,
-                    textDirection: prop.textDirection,
-                  ),
-                );
-              });
+          // Paint directly: the repeating animation already rebuilds every
+          // frame, so a nested AnimatedValueBuilder would restart every frame.
+          return CustomPaint(
+            painter: _LinearProgressIndicatorPainter(
+              start: start,
+              end: end,
+              start2: start2,
+              end2: end2,
+              color: color ?? theme.colorScheme.primary,
+              backgroundColor:
+                  backgroundColor ?? theme.colorScheme.primary.scaleAlpha(0.2),
+              showSparks: showSparks,
+              sparksColor: color ?? theme.colorScheme.primary,
+              sparksRadius: theme.scaling * 16,
+              textDirection: directionality,
+            ),
+          );
         },
       );
     }
@@ -185,6 +169,28 @@ class _LinearProgressIndicatorProperties {
       textDirection: b.textDirection,
     );
   }
+
+  // AnimatedValueBuilder restarts its animation whenever the value is not
+  // ==, so value equality keeps parent rebuilds from restarting it.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is _LinearProgressIndicatorProperties &&
+        other.start == start &&
+        other.end == end &&
+        other.start2 == start2 &&
+        other.end2 == end2 &&
+        other.color == color &&
+        other.backgroundColor == backgroundColor &&
+        other.showSparks == showSparks &&
+        other.sparksColor == sparksColor &&
+        other.sparksRadius == sparksRadius &&
+        other.textDirection == textDirection;
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end, start2, end2, color,
+      backgroundColor, showSparks, sparksColor, sparksRadius, textDirection);
 }
 
 double? _lerpDouble(double? a, double? b, double t) {
