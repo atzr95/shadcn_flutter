@@ -363,7 +363,7 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
         widget.value,
         (value) {
           if (widget.onChanged != null) {
-            widget.onChanged!(value as T?);
+            widget.onChanged!(value);
           }
         },
       );
@@ -385,7 +385,7 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
         widget.value,
         (value) {
           if (widget.onChanged != null) {
-            widget.onChanged!(value as T?);
+            widget.onChanged!(value);
           }
         },
       );
@@ -493,7 +493,7 @@ class SelectState<T> extends State<Select<T>> with FormValueSupplier {
                                       value,
                                       (value) {
                                         if (widget.onChanged != null) {
-                                          widget.onChanged!(value as T);
+                                          widget.onChanged!(value);
                                         }
                                       },
                                     );
@@ -1036,7 +1036,7 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
         widget.value,
         (value) {
           if (widget.onChanged != null) {
-            widget.onChanged!(value as List<T>);
+            widget.onChanged!(value);
           }
         },
       );
@@ -1057,7 +1057,7 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
         widget.value,
         (value) {
           if (widget.onChanged != null) {
-            widget.onChanged!(value as List<T>);
+            widget.onChanged!(value);
           }
         },
       );
@@ -1172,7 +1172,10 @@ class MultiSelectState<T> extends State<MultiSelect<T>> with FormValueSupplier {
                                   } else {
                                     newValue.remove(value);
                                   }
-                                  widget.onChanged!(newValue);
+                                  // Also reports to an enclosing Form;
+                                  // didUpdateWidget skips that while the
+                                  // popup is open.
+                                  _handleValueChange(newValue);
                                   popupValueNotifier.value = newValue;
                                 },
                           emptyBuilder: widget.emptyBuilder,
