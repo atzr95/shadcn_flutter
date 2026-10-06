@@ -77,7 +77,9 @@ class Hover extends StatefulWidget {
   final Duration waitDuration;
   final Duration
       minDuration; // The minimum duration to show the hover, if the cursor is quickly moved over the widget.
-  final Duration showDuration; // The duration to show the hover
+  // How long the hover stays shown after a touch long press is released.
+  // Never less than 1.5s, so the content can be read after the finger lifts.
+  final Duration showDuration;
   final HitTestBehavior hitTestBehavior;
 
   const Hover({
@@ -95,6 +97,9 @@ class Hover extends StatefulWidget {
 }
 
 class _HoverState extends State<Hover> with SingleTickerProviderStateMixin {
+  // Minimum touch hold time; Material's Tooltip also uses 1.5s.
+  static const Duration _minTouchShowDuration = Duration(milliseconds: 1500);
+
   late AnimationController _controller;
   int? _enterTime;
 
@@ -113,14 +118,20 @@ class _HoverState extends State<Hover> with SingleTickerProviderStateMixin {
     _controller.forward();
   }
 
+  // [cursorOut] is true when the mouse leaves or the user taps elsewhere, and
+  // false when a touch long press is released.
   void _onExit(bool cursorOut) {
     int minDuration = widget.minDuration.inMilliseconds;
     int? enterTime = _enterTime;
     if (enterTime != null) {
       int duration = DateTime.now().millisecondsSinceEpoch - enterTime;
+      // ponytail: tap outside during the touch hold is a no-op (_enterTime is
+      // null), so the hover can linger up to the hold time.
       _controller.reverseDuration = cursorOut
           ? Duration(milliseconds: duration < minDuration ? minDuration : 0)
-          : widget.showDuration;
+          : (widget.showDuration > _minTouchShowDuration
+              ? widget.showDuration
+              : _minTouchShowDuration);
       _controller.reverse();
     }
     _enterTime = null;
@@ -167,9 +178,10 @@ class _HoverState extends State<Hover> with SingleTickerProviderStateMixin {
                   _onExit(true);
                 }
               : null,
+          // keep it shown for a moment after the finger lifts
           onLongPressUp: enableLongPress
               ? () {
-                  _onExit(true);
+                  _onExit(false);
                 }
               : null,
           child: widget.child,
