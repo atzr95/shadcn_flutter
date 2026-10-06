@@ -1141,10 +1141,18 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
     super.dispose();
   }
 
+  // Set by the first close(); later calls return it, and the content ignores
+  // taps while it slides out (a double tap must not run an item twice).
+  Future<void>? _closing;
+
   Future<void> close([T? result]) {
-    return _controlledAnimation.forward(0, Curves.easeOutCubic).then((value) {
-      widget.completer.complete(result);
+    if (_closing != null) return _closing!;
+    _closing =
+        _controlledAnimation.forward(0, Curves.easeOutCubic).then((value) {
+      if (!widget.completer.isCompleted) widget.completer.complete(result);
     });
+    if (mounted) setState(() {});
+    return _closing!;
   }
 
   @override
@@ -1271,10 +1279,13 @@ class DrawerEntryWidgetState<T> extends State<DrawerEntryWidget<T>>
                         child: AnimatedBuilder(
                           animation: _controlledAnimation,
                           builder: (context, child) {
-                            return FractionalTranslation(
-                              translation: startFractionalOffset *
-                                  (1 - _controlledAnimation.value),
-                              child: child,
+                            return IgnorePointer(
+                              ignoring: _closing != null,
+                              child: FractionalTranslation(
+                                translation: startFractionalOffset *
+                                    (1 - _controlledAnimation.value),
+                                child: child,
+                              ),
                             );
                           },
                           child: Transform.translate(
