@@ -239,7 +239,7 @@ class OrValidator<T> extends Validator<T> {
   }
 
   @override
-  int get hashCode => validators.hashCode;
+  int get hashCode => Object.hashAll(validators);
 }
 
 class NonNullValidator<T> extends Validator<T> {
@@ -626,6 +626,9 @@ class RangeValidator<T extends num> extends Validator<T> {
         other.inclusive == inclusive &&
         other.message == message;
   }
+
+  @override
+  int get hashCode => Object.hash(min, max, inclusive, message);
 }
 
 class RegexValidator extends Validator<String> {
@@ -865,7 +868,7 @@ class CompositeValidator<T> extends Validator<T> {
   }
 
   @override
-  int get hashCode => validators.hashCode;
+  int get hashCode => Object.hashAll(validators);
 }
 
 abstract class ValidationResult {
