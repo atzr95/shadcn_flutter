@@ -329,38 +329,62 @@ class RefreshTriggerState extends State<RefreshTrigger>
     if (_currentFuture != null) {
       await _currentFuture;
     }
+    if (!mounted) {
+      return;
+    }
+    final future = _refresh(refreshCallback);
     setState(() {
-      _currentFuture = _refresh(refreshCallback);
+      _currentFuture = future;
     });
-    return _currentFuture!.whenComplete(() {
-      if (!mounted || count != _currentFutureCount) {
+    final succeeded = await future;
+    if (!mounted || count != _currentFutureCount) {
+      return;
+    }
+    setState(() {
+      _currentFuture = null;
+      // A failed refresh skips the "complete" check and goes back to idle.
+      _stage = succeeded ? TriggerStage.completed : TriggerStage.idle;
+      if (!succeeded) {
+        _currentExtent = 0;
+      }
+    });
+    if (!succeeded) {
+      return;
+    }
+    // Future.delayed works the same
+    Timer(widget.completeDuration, () {
+      // Skip if unmounted or a newer refresh has started since.
+      if (!mounted || _stage != TriggerStage.completed) {
         return;
       }
       setState(() {
-        _currentFuture = null;
-        _stage = TriggerStage.completed;
-        // Future.delayed works the same
-        Timer(widget.completeDuration, () {
-          if (!mounted) {
-            return;
-          }
-          setState(() {
-            _stage = TriggerStage.idle;
-            _currentExtent = 0;
-          });
-        });
+        _stage = TriggerStage.idle;
+        _currentExtent = 0;
       });
     });
   }
 
-  Future<void> _refresh([FutureVoidCallback? refresh]) {
+  // Runs the refresh; never throws. An error is reported to FlutterError and
+  // gives false, so the trigger always returns to idle.
+  Future<bool> _refresh([FutureVoidCallback? refresh]) async {
     if (_stage != TriggerStage.refreshing) {
       setState(() {
         _stage = TriggerStage.refreshing;
       });
     }
     refresh ??= widget.onRefresh;
-    return refresh?.call() ?? Future.value();
+    try {
+      await refresh?.call();
+      return true;
+    } catch (error, stack) {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'shadcn_flutter',
+        context: ErrorDescription('while running RefreshTrigger.onRefresh'),
+      ));
+      return false;
+    }
   }
 
   @override
