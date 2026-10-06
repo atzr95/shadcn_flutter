@@ -283,6 +283,9 @@ class PopoverAnchorState extends State<PopoverAnchor>
   late bool _allowInvertHorizontal;
   late bool _allowInvertVertical;
   late Ticker _ticker;
+  // Bumped by _tick when the anchor moves. Only the layout listens, so a
+  // moving anchor does not re-run widget.builder every frame.
+  final ValueNotifier<int> _anchorMoved = ValueNotifier(0);
 
   @override
   set offset(Offset? offset) {
@@ -491,6 +494,7 @@ class PopoverAnchorState extends State<PopoverAnchor>
   @override
   void dispose() {
     _ticker.dispose();
+    _anchorMoved.dispose();
     super.dispose();
   }
 
@@ -517,12 +521,11 @@ class PopoverAnchorState extends State<PopoverAnchor>
         globalRect.left + size.width / 2 + size.width / 2 * anchorAlignment.x,
         globalRect.top + size.height / 2 + size.height / 2 * anchorAlignment.y,
       );
-      if (_position != newPos) {
-        setState(() {
-          _anchorSize = size;
-          _position = newPos;
-          widget.onTickFollow?.call(this);
-        });
+      if (_position != newPos || _anchorSize != size) {
+        _anchorSize = size;
+        _position = newPos;
+        _anchorMoved.value++;
+        widget.onTickFollow?.call(this);
       }
     }
   }
@@ -546,7 +549,7 @@ class PopoverAnchorState extends State<PopoverAnchor>
           removeRight: true,
           removeTop: true,
           child: AnimatedBuilder(
-            animation: widget.animation,
+            animation: Listenable.merge([widget.animation, _anchorMoved]),
             builder: (context, child) {
               final theme = Theme.of(context);
               final scaling = theme.scaling;
