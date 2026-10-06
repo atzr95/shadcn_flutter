@@ -79,23 +79,17 @@ class RadioItem<T> extends StatefulWidget {
 }
 
 class _RadioItemState<T> extends State<RadioItem<T>> with FormValueSupplier {
-  late FocusNode _focusNode;
+  // Created only when the caller gives no node; only this one is disposed here.
+  FocusNode? _localFocusNode;
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_localFocusNode ??= FocusNode());
 
   bool _focusing = false;
 
   @override
-  void initState() {
-    super.initState();
-    _focusNode = widget.focusNode ?? FocusNode();
-  }
-
-  @override
-  void didUpdateWidget(covariant RadioItem<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.focusNode != widget.focusNode) {
-      _focusNode.dispose();
-      _focusNode = widget.focusNode ?? FocusNode();
-    }
+  void dispose() {
+    _localFocusNode?.dispose();
+    super.dispose();
   }
 
   @override
@@ -172,23 +166,17 @@ class RadioCard<T> extends StatefulWidget {
 }
 
 class _RadioCardState<T> extends State<RadioCard<T>> with FormValueSupplier {
-  late FocusNode _focusNode;
+  // Created only when the caller gives no node; only this one is disposed here.
+  FocusNode? _localFocusNode;
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_localFocusNode ??= FocusNode());
   bool _focusing = false;
   bool _hovering = false;
 
   @override
-  void initState() {
-    super.initState();
-    _focusNode = widget.focusNode ?? FocusNode();
-  }
-
-  @override
-  void didUpdateWidget(covariant RadioCard<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.focusNode != widget.focusNode) {
-      _focusNode.dispose();
-      _focusNode = widget.focusNode ?? FocusNode();
-    }
+  void dispose() {
+    _localFocusNode?.dispose();
+    super.dispose();
   }
 
   @override
