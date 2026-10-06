@@ -8,31 +8,27 @@ abstract class AvatarWidget extends Widget {
 }
 
 class Avatar extends StatefulWidget implements AvatarWidget {
+  /// Returns up to two uppercase initials for [name]: the first letter of the
+  /// first and last words ('John Doe' -> 'JD'), or the first two letters of a
+  /// single word ('John' -> 'JO'). Works for any script; returns '' when
+  /// [name] has no letters.
   static String getInitials(String name) {
-    // replace all non-alphabetic characters
-    name = name.replaceAll(RegExp(r'[^a-zA-Z\s]'), '');
-    final List<String> parts = name.split(' ');
+    // drop everything but letters (any script), combining marks and spaces
+    final parts = name
+        .replaceAll(RegExp(r'[^\p{L}\p{M}\s]', unicode: true), '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.isEmpty) {
-      // get the first 2 characters (title cased)
-      String first = name.substring(0, 1).toUpperCase();
-      if (name.length > 1) {
-        String second = name.substring(1, 2).toUpperCase();
-        return first + second;
-      }
-      return first;
+      return '';
     }
-    // get the first two characters
-    String first = parts[0].substring(0, 1).toUpperCase();
-    if (parts.length > 1) {
-      String second = parts[1].substring(0, 1).toUpperCase();
-      return first + second;
+    // characters = grapheme clusters, so accented letters are never split
+    if (parts.length == 1) {
+      return parts.first.characters.take(2).toString().toUpperCase();
     }
-    // append with the 2nd character of the first part
-    if (parts[0].length > 1) {
-      String second = parts[0].substring(1, 2).toUpperCase();
-      return first + second;
-    }
-    return first;
+    return (parts.first.characters.first + parts.last.characters.first)
+        .toUpperCase();
   }
 
   final String initials;
