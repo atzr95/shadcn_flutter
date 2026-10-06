@@ -603,42 +603,30 @@ class ButtonState<T extends Button> extends State<T> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    var style = widget.style;
-    var overrideData = Data.maybeOf<ButtonStyleOverrideData>(context);
-    if (overrideData != _overrideData) {
-      _overrideData = overrideData;
-      if (overrideData != null) {
-        style = style.copyWith(
-          decoration: overrideData.decoration,
-          mouseCursor: overrideData.mouseCursor,
-          padding: overrideData.padding,
-          textStyle: overrideData.textStyle,
-          iconTheme: overrideData.iconTheme,
-          margin: overrideData.margin,
-        );
-      }
-    }
-    _style = style;
+    // Re-apply even when the override is unchanged: any dependency change
+    // (e.g. theme) lands here, and skipping it dropped ButtonGroup corners.
+    _overrideData = Data.maybeOf<ButtonStyleOverrideData>(context);
+    _style = _applyOverride();
   }
 
   @override
   void didUpdateWidget(T oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.style != oldWidget.style) {
-      var style = widget.style;
-      var overrideData = _overrideData;
-      if (overrideData != null) {
-        style = style.copyWith(
-          decoration: overrideData.decoration,
-          mouseCursor: overrideData.mouseCursor,
-          padding: overrideData.padding,
-          textStyle: overrideData.textStyle,
-          iconTheme: overrideData.iconTheme,
-          margin: overrideData.margin,
-        );
-      }
-      _style = style;
-    }
+    _style = _applyOverride();
+  }
+
+  // widget.style with the nearest [ButtonStyleOverride] applied on top.
+  AbstractButtonStyle _applyOverride() {
+    var overrideData = _overrideData;
+    if (overrideData == null) return widget.style;
+    return widget.style.copyWith(
+      decoration: overrideData.decoration,
+      mouseCursor: overrideData.mouseCursor,
+      padding: overrideData.padding,
+      textStyle: overrideData.textStyle,
+      iconTheme: overrideData.iconTheme,
+      margin: overrideData.margin,
+    );
   }
 
   EdgeInsetsGeometry _resolveMargin(Set<WidgetState> states) {
