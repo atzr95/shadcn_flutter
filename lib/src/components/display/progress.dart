@@ -85,15 +85,15 @@ class Progress extends StatelessWidget {
     this.disableAnimation = false,
     this.color,
     this.backgroundColor,
-  }) : assert(progress != null && progress >= min && progress <= max,
-            'Progress must be between min and max');
+  }) : assert(min < max, 'min must be less than max');
 
-  /// The normalized value of the progress.
+  /// The normalized value of the progress, clamped to 0..1, so a value
+  /// outside min..max (e.g. spent > budget) shows as empty or full.
   double? get normalizedValue {
     if (progress == null) {
       return null;
     }
-    return (progress! - min) / (max - min);
+    return ((progress! - min) / (max - min)).clamp(0.0, 1.0);
   }
 
   @override
@@ -103,8 +103,9 @@ class Progress extends StatelessWidget {
     return LinearProgressIndicator(
       value: normalizedValue,
       backgroundColor: styleValue(
-          defaultValue: backgroundColor,
-          themeValue: compTheme?.backgroundColor),
+          themeValue: compTheme?.backgroundColor,
+          widgetValue: backgroundColor,
+          defaultValue: null),
       color: styleValue(
           themeValue: compTheme?.color, widgetValue: color, defaultValue: null),
       minHeight: styleValue(
