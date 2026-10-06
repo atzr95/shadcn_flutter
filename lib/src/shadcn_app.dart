@@ -521,7 +521,7 @@ class ShadcnLayer extends StatelessWidget {
         popoverHandler: popoverHandler ?? (mobileMode ? const SheetOverlayHandler() : const PopoverOverlayHandler()),
         tooltipHandler: tooltipHandler ?? (mobileMode ? const FixedTooltipOverlayHandler() : const PopoverOverlayHandler()),
         child: ShadcnAnimatedTheme(
-          duration: kDefaultDuration,
+          duration: enableThemeAnimation ? kDefaultDuration : Duration.zero,
           data: scaledTheme,
           child: Builder(builder: (context) {
             var theme = Theme.of(context);
