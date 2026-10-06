@@ -137,6 +137,12 @@ class _DrawerWrapperState extends State<DrawerWrapper>
     _extraOffset = ControlledAnimation(_controller);
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   double? get expandingHeight {
     switch (widget.position) {
       case OverlayPosition.left:
