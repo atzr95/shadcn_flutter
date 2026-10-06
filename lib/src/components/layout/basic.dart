@@ -62,22 +62,25 @@ class Basic extends StatelessWidget {
                     children: [
                       if (title != null)
                         Align(
-                          alignment: titleAlignment ?? Alignment.topLeft,
+                          alignment:
+                              titleAlignment ?? AlignmentDirectional.topStart,
                           child: title!,
                         ).small().medium(),
                       if (title != null && subtitle != null)
                         SizedBox(height: 2 * scaling),
                       if (subtitle != null)
                         Align(
-                          alignment: subtitleAlignment ?? Alignment.topLeft,
+                          alignment: subtitleAlignment ??
+                              AlignmentDirectional.topStart,
                           child: subtitle!,
                         ).xSmall().muted(),
                       if ((title != null || subtitle != null) &&
                           content != null)
-                        SizedBox(height: titleSpacing),
+                        SizedBox(height: titleSpacing ?? (4 * scaling)),
                       if (content != null)
                         Align(
-                          alignment: contentAlignment ?? Alignment.topLeft,
+                          alignment:
+                              contentAlignment ?? AlignmentDirectional.topStart,
                           child: content!,
                         ).small(),
                     ],
@@ -161,21 +164,24 @@ class BasicLayout extends StatelessWidget {
                   children: [
                     if (title != null)
                       Align(
-                        alignment: titleAlignment ?? Alignment.topLeft,
+                        alignment:
+                            titleAlignment ?? AlignmentDirectional.topStart,
                         child: title!,
                       ),
                     if (title != null && subtitle != null)
                       SizedBox(height: 2 * scaling),
                     if (subtitle != null)
                       Align(
-                        alignment: subtitleAlignment ?? Alignment.topLeft,
+                        alignment:
+                            subtitleAlignment ?? AlignmentDirectional.topStart,
                         child: subtitle!,
                       ),
                     if ((title != null || subtitle != null) && content != null)
                       SizedBox(height: titleSpacing ?? (4 * scaling)),
                     if (content != null)
                       Align(
-                        alignment: contentAlignment ?? Alignment.topLeft,
+                        alignment:
+                            contentAlignment ?? AlignmentDirectional.topStart,
                         child: content!,
                       ),
                   ],
