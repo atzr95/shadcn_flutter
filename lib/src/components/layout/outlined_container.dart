@@ -91,6 +91,7 @@ class OutlinedContainer extends StatefulWidget {
 }
 
 class _OutlinedContainerState extends State<OutlinedContainer> {
+  // Keeps the container's state when the SurfaceBlur wrapper comes and goes.
   final GlobalKey _mainContainerKey = GlobalKey();
   @override
   Widget build(BuildContext context) {
@@ -104,41 +105,57 @@ class _OutlinedContainerState extends State<OutlinedContainer> {
     if (widget.surfaceOpacity != null) {
       backgroundColor = backgroundColor.scaleAlpha(widget.surfaceOpacity!);
     }
-    Widget childWidget = AnimatedContainer(
-      duration: widget.duration ?? Duration.zero,
-      key: _mainContainerKey,
-      width: widget.width,
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border.all(
-          color: widget.borderColor ?? theme.colorScheme.border,
-          width: widget.borderWidth ?? (1 * scaling),
-          style: widget.borderStyle ?? BorderStyle.solid,
-        ),
-        borderRadius: borderRadius,
-        boxShadow: widget.boxShadow,
+    final borderWidth = widget.borderWidth ?? (1 * scaling);
+    final innerBorderRadius = subtractByBorder(borderRadius, borderWidth);
+    final decoration = BoxDecoration(
+      color: backgroundColor,
+      border: Border.all(
+        color: widget.borderColor ?? theme.colorScheme.border,
+        width: borderWidth,
+        style: widget.borderStyle ?? BorderStyle.solid,
       ),
-      child: AnimatedContainer(
-        duration: widget.duration ?? Duration.zero,
-        padding: widget.padding,
-        clipBehavior: widget.clipBehavior,
-        decoration: BoxDecoration(
-          borderRadius: subtractByBorder(
-            borderRadius,
-            widget.borderWidth ?? (1 * scaling),
-          ),
-        ),
-        child: widget.child,
-      ),
+      borderRadius: borderRadius,
+      boxShadow: widget.boxShadow,
     );
-    if (widget.surfaceBlur != null && widget.surfaceBlur! > 0) {
+    final innerDecoration = BoxDecoration(borderRadius: innerBorderRadius);
+    final duration = widget.duration;
+    // AnimatedContainer costs an AnimationController each, so only animate
+    // when a duration is given.
+    Widget childWidget = duration == null
+        ? Container(
+            key: _mainContainerKey,
+            width: widget.width,
+            height: widget.height,
+            decoration: decoration,
+            child: Container(
+              padding: widget.padding,
+              clipBehavior: widget.clipBehavior,
+              decoration: innerDecoration,
+              child: widget.child,
+            ),
+          )
+        : AnimatedContainer(
+            duration: duration,
+            key: _mainContainerKey,
+            width: widget.width,
+            height: widget.height,
+            decoration: decoration,
+            child: AnimatedContainer(
+              duration: duration,
+              padding: widget.padding,
+              clipBehavior: widget.clipBehavior,
+              decoration: innerDecoration,
+              child: widget.child,
+            ),
+          );
+    // The blur only shows through a see-through background; behind an opaque
+    // one it is a wasted GPU pass every frame.
+    if (widget.surfaceBlur != null &&
+        widget.surfaceBlur! > 0 &&
+        backgroundColor.a < 1) {
       childWidget = SurfaceBlur(
         surfaceBlur: widget.surfaceBlur!,
-        borderRadius: subtractByBorder(
-          borderRadius,
-          widget.borderWidth ?? (1 * scaling),
-        ),
+        borderRadius: innerBorderRadius,
         child: childWidget,
       );
     }
