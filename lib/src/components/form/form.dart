@@ -1173,6 +1173,9 @@ class FormController extends ChangeNotifier {
       _attachedInputs.remove(key);
       _validity.remove(key);
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        if (_disposed) {
+          return;
+        }
         notifyListeners();
       });
     }
@@ -1356,6 +1359,10 @@ extension FormExtension on BuildContext {
         }
         return _chainedSubmitForm(values, errors, iterator);
       });
+    }
+    // Sync validators resolve here; a ReplaceResult must not block submit.
+    if (value is InvalidResult) {
+      errors[entry.key] = value;
     }
     return _chainedSubmitForm(values, errors, iterator);
   }
