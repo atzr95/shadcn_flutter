@@ -114,9 +114,8 @@ class PopoverOverlayHandler extends OverlayHandler {
                           ? const Interval(0, 2 / 3)
                           : Curves.linear,
                       duration: isClosed.value
-                          ? (showDuration ?? kDefaultDuration)
-                          : (dismissDuration ??
-                              const Duration(milliseconds: 100)),
+                          ? (dismissDuration ?? kDefaultDuration)
+                          : (showDuration ?? const Duration(milliseconds: 100)),
                       onEnd: (value) {
                         if (value == 0.0 && isClosed.value) {
                           popoverEntry.remove();
