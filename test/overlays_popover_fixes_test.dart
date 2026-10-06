@@ -203,6 +203,28 @@ void main() {
     expect(card.right - calendar.right, closeTo(25 * scaling, 1));
   });
 
+  testWidgets('fullscreen AlertDialog background runs behind the keyboard',
+      (tester) async {
+    _phone(tester);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    late BuildContext pageContext;
+    await tester.pumpWidget(_app(Builder(builder: (context) {
+      pageContext = context;
+      return const SizedBox();
+    })));
+    showDialog(
+      context: pageContext,
+      builder: (_) => const AlertDialog.fullscreen(
+        content: SizedBox(key: Key('body'), height: 2000),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final background = tester.getRect(find.byType(OutlinedContainer).last);
+    final body = tester.getRect(find.byKey(const Key('body')));
+    expect(background.bottom, 800);
+    expect(body.bottom, lessThanOrEqualTo(800 - 300));
+  });
+
   testWidgets('card AlertDialog keeps equal side gaps on a phone',
       (tester) async {
     _phone(tester);

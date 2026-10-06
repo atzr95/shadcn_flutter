@@ -140,8 +140,13 @@ class _AlertDialogState extends State<AlertDialog> {
         MediaQuery.sizeOf(context).width -
             2 * math.max(pad.left, pad.right) -
             32 * scaling);
+    // A fullscreen dialog's background runs behind the keyboard (iOS 26's
+    // keyboard has rounded top corners that showed the dark barrier); only
+    // its content stops at the keyboard, via the container padding below.
+    final keyboard =
+        widget.isFullscreen ? MediaQuery.viewInsetsOf(context).bottom : 0.0;
 
-    return material.Dialog(
+    Widget dialog = material.Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: widget.isFullscreen
           ? EdgeInsets.zero
@@ -172,7 +177,7 @@ class _AlertDialogState extends State<AlertDialog> {
             borderWidth: widget.isFullscreen ? 0 : 1 * scaling,
             borderColor: themeData.colorScheme.muted,
             padding: widget.isFullscreen
-                ? EdgeInsets.zero
+                ? EdgeInsets.only(bottom: keyboard)
                 : widget.padding ?? EdgeInsets.all(24 * scaling),
             surfaceBlur: widget.surfaceBlur ?? themeData.surfaceBlur,
             surfaceOpacity: widget.surfaceOpacity ?? themeData.surfaceOpacity,
@@ -180,6 +185,14 @@ class _AlertDialogState extends State<AlertDialog> {
           ),
         ),
       ),
+    );
+    if (!widget.isFullscreen) return dialog;
+    // Without the inset, material.Dialog stops shrinking itself above the
+    // keyboard; the padding above keeps the content clear of it.
+    return MediaQuery.removeViewInsets(
+      context: context,
+      removeBottom: true,
+      child: dialog,
     );
   }
 }
