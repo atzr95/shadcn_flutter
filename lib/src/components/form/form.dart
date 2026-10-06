@@ -932,8 +932,11 @@ class FormEntry<T> extends StatefulWidget {
 }
 
 class FormEntryState extends State<FormEntry> {
+  // Marks "nothing reported yet", so a first report of null still counts.
+  static const _unset = Object();
+
   FormController? _controller;
-  Object? _cachedValue;
+  Object? _cachedValue = _unset;
   final ValueNotifier<ValidationResult?> _validity = ValueNotifier(null);
 
   ValueListenable<ValidationResult?> get validity => _validity;
@@ -952,7 +955,7 @@ class FormEntryState extends State<FormEntry> {
       newController?.addListener(_onControllerChanged);
       _controller = newController;
       _onControllerChanged();
-      if (_cachedValue != null) {
+      if (!identical(_cachedValue, _unset)) {
         newController?.attach(
             context, widget.key, _cachedValue, widget.validator);
       }
@@ -1373,7 +1376,10 @@ extension FormExtension on BuildContext {
       final formEntry = Data.maybeOf<FormEntryState>(this);
       if (formEntry != null) {
         var formKey = formEntry.widget.key;
-        if (formKey.isInstanceOf(value) && formEntry._cachedValue != value) {
+        // null is a valid "no value" for any key (getFormValue returns T?).
+        // _unset never equals a value, so the first report always counts.
+        if ((value == null || formKey.isInstanceOf(value)) &&
+            formEntry._cachedValue != value) {
           formEntry._cachedValue = value;
           final oldState = formController.getState(formKey);
           if (oldState != null) {
