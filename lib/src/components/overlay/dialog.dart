@@ -75,7 +75,10 @@ class ModalContainer extends StatelessWidget {
 }
 
 class SurfaceBarrierPainter extends CustomPainter {
-  static const double bigSize = 1000000000;
+  // Big enough to cover any screen around the card, small enough for the
+  // GPU's 32-bit floats: at 1e9 they round to ~64px, the barrier's triangles
+  // stopped meeting and a diagonal seam showed across the screen.
+  static const double bigSize = 100000;
   static const bigScreen = Size(bigSize, bigSize);
   static const bigOffset = Offset(-bigSize / 2, -bigSize / 2);
 
@@ -107,24 +110,22 @@ class SurfaceBarrierPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     if (clip) {
-      var rect = (Offset.zero & size);
-      rect = _padRect(rect);
-      Path path = Path()
-        ..addRect(bigOffset & bigScreen)
-        ..addRRect(RRect.fromRectAndCorners(
-          rect,
+      // The barrier with a card-shaped hole, drawn as one shape instead of
+      // an even-odd clip path.
+      canvas.drawDRRect(
+        RRect.fromRectAndRadius(bigOffset & bigScreen, Radius.zero),
+        RRect.fromRectAndCorners(
+          _padRect(Offset.zero & size),
           topLeft: borderRadius.topLeft,
           topRight: borderRadius.topRight,
           bottomLeft: borderRadius.bottomLeft,
           bottomRight: borderRadius.bottomRight,
-        ));
-      path.fillType = PathFillType.evenOdd;
-      canvas.clipPath(path);
+        ),
+        paint,
+      );
+      return;
     }
-    canvas.drawRect(
-      bigOffset & bigScreen,
-      paint,
-    );
+    canvas.drawRect(bigOffset & bigScreen, paint);
   }
 
   @override
