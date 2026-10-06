@@ -290,7 +290,9 @@ class _RenderOverflowMarqueeLayout extends RenderShiftedBox {
     final key = (start, end, size, direction, textDirection, fadePortion);
     if (key == _shaderKey) return _shader!;
     final horizontal = direction == Axis.horizontal;
-    final portion = fadePortion / (horizontal ? size.width : size.height);
+    // At most half each side, so the stops stay in order on narrow boxes.
+    final portion =
+        (fadePortion / (horizontal ? size.width : size.height)).clamp(0.0, 0.5);
     _shaderKey = key;
     return _shader = LinearGradient(
       begin: horizontal
