@@ -42,6 +42,24 @@ void main() {
     });
   });
 
+  testWidgets('a Chip without onPressed lets taps reach the parent',
+      (tester) async {
+    int parentTaps = 0;
+    await tester.pumpWidget(
+      ShadcnApp(
+        theme: ThemeData(colorScheme: ColorSchemes.darkZinc(), radius: 0.5),
+        home: Center(
+          child: GestureDetector(
+            onTap: () => parentTaps++,
+            child: const Chip(child: Text('static')),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byType(Chip));
+    expect(parentTaps, 1);
+  });
+
   testWidgets('LinearProgressIndicator does not restart on a plain rebuild',
       (tester) async {
     double value = 0.5;
