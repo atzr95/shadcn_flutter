@@ -80,6 +80,51 @@ void main() {
     expect(rect.top, greaterThanOrEqualTo(50));
   });
 
+  // Opens a card AlertDialog limited to 500 wide by the caller, the way the
+  // app's BaseDialog does, and returns the card rect and theme scaling.
+  Future<(Rect, double)> showCard(WidgetTester tester) async {
+    late BuildContext pageContext;
+    late BuildContext dialogContext;
+    await tester.pumpWidget(_app(Builder(builder: (context) {
+      pageContext = context;
+      return const SizedBox();
+    })));
+    showDialog(
+      context: pageContext,
+      builder: (context) {
+        dialogContext = context;
+        return const AlertDialog(
+          title: Text('t'),
+          content: SizedBox(width: 600, height: 40),
+        ).constrained(maxWidth: 500);
+      },
+    );
+    await tester.pumpAndSettle();
+    return (
+      tester.getRect(find.byType(ModalContainer)),
+      Theme.of(dialogContext).scaling,
+    );
+  }
+
+  testWidgets('card AlertDialog keeps the caller width on desktop',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final (rect, _) = await showCard(tester);
+    expect(rect.width, 500);
+  });
+
+  testWidgets('card AlertDialog keeps equal side gaps on a phone',
+      (tester) async {
+    _phone(tester);
+    tester.view.padding = const FakeViewPadding(top: 50, bottom: 34);
+    final (rect, scaling) = await showCard(tester);
+    expect(rect.width, closeTo(400 - 32 * scaling, 0.01));
+    expect(rect.left, closeTo(400 - rect.right, 0.01));
+    expect(rect.top, greaterThanOrEqualTo(50 + 16 * scaling));
+  });
+
   testWidgets('a moving anchor re-lays out without rebuilding content',
       (tester) async {
     _phone(tester);

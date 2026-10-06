@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter/material.dart' as material;
 
@@ -55,14 +57,31 @@ class _AlertDialogState extends State<AlertDialog> {
   Widget build(BuildContext context) {
     var themeData = Theme.of(context);
     var scaling = themeData.scaling;
+    // Fullscreen stays edge to edge. A card dialog keeps 16px off the screen
+    // edges and clear of the status bar, notch and home indicator. The side
+    // gap is a max width, not insetPadding, because insetPadding sits inside
+    // a caller's own width limit (e.g. .constrained(maxWidth: 500)) and would
+    // shrink it. The dialog is centered on the screen, so the wider side
+    // padding counts twice.
+    final pad = MediaQuery.paddingOf(context);
+    final maxWidth = math.max(
+        0.0,
+        MediaQuery.sizeOf(context).width -
+            2 * math.max(pad.left, pad.right) -
+            32 * scaling);
 
     return material.Dialog(
       backgroundColor: Colors.transparent,
-      // Fullscreen stays edge to edge. A card dialog keeps 16px off the screen
-      // edges and clear of the status bar and home indicator.
       insetPadding: widget.isFullscreen
           ? EdgeInsets.zero
-          : MediaQuery.paddingOf(context) + EdgeInsets.all(16 * scaling),
+          : EdgeInsets.only(
+              top: pad.top + 16 * scaling, bottom: pad.bottom + 16 * scaling),
+      // minWidth 280 is material's default, restated because passing
+      // constraints replaces it.
+      constraints: widget.isFullscreen
+          ? null
+          : BoxConstraints(
+              minWidth: math.min(280.0, maxWidth), maxWidth: maxWidth),
       child: ModalContainer(
         borderRadius:
             widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
