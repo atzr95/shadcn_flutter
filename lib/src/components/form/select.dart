@@ -762,11 +762,15 @@ class SelectPopupState<T> extends State<SelectPopup<T>> {
                                 padding:
                                     const EdgeInsets.only(top: 1, bottom: 1) *
                                         scaling,
-                                child: ListView(
+                                // Builder: only visible rows are built, so
+                                // long lists open and filter quickly.
+                                child: ListView.builder(
                                   controller: _scrollController,
                                   padding: const EdgeInsets.all(4) * scaling,
                                   shrinkWrap: true,
-                                  children: children,
+                                  itemCount: children.length,
+                                  itemBuilder: (context, index) =>
+                                      children[index],
                                 ),
                               ),
                               AnimatedBuilder(
