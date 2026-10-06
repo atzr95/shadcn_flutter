@@ -79,9 +79,14 @@ class Collapsible extends StatefulWidget {
   final List<Widget> children;
 
   /// Initial expansion state of this widget (if null, defaults to false).
+  ///
+  /// A later change of this value (e.g. from a parent managing the state with
+  /// [onExpansionChanged]) is applied; rebuilding with the same value is not.
   final bool? isExpanded;
 
   /// If overridden, the parent widget is responsible for managing the expansion state.
+  ///
+  /// Called with the requested new state (the opposite of the current one).
   final ValueChanged<bool>? onExpansionChanged;
 
   /// https://sunarya-thito.github.io/shadcn_flutter/#/components/collapsible
@@ -108,14 +113,16 @@ class CollapsibleState extends State<Collapsible> {
   @override
   void didUpdateWidget(covariant Collapsible oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isExpanded != null) {
+    // Only a real change: a parent rebuild must not undo a user's toggle.
+    if (widget.isExpanded != oldWidget.isExpanded &&
+        widget.isExpanded != null) {
       _isExpanded = widget.isExpanded!;
     }
   }
 
   void _handleTap() {
     if (widget.onExpansionChanged != null) {
-      widget.onExpansionChanged!(_isExpanded);
+      widget.onExpansionChanged!(!_isExpanded);
     } else {
       setState(() {
         _isExpanded = !_isExpanded;
