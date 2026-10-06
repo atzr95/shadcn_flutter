@@ -1159,7 +1159,7 @@ class TableRow {
         (states) {
           return TextStyle(
             color: states.contains(WidgetState.disabled)
-                ? theme.colorScheme.muted
+                ? theme.colorScheme.mutedForeground
                 : null,
           );
         },
@@ -1205,7 +1205,7 @@ class TableFooter extends TableRow {
         (states) {
           return TextStyle(
             color: states.contains(WidgetState.disabled)
-                ? theme.colorScheme.muted
+                ? theme.colorScheme.mutedForeground
                 : null,
           );
         },
@@ -1246,7 +1246,7 @@ class TableHeader extends TableRow {
         (states) {
           return theme.typography.semiBold.merge(TextStyle(
             color: states.contains(WidgetState.disabled)
-                ? theme.colorScheme.muted
+                ? theme.colorScheme.mutedForeground
                 : null,
           ));
         },
