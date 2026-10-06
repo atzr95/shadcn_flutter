@@ -115,6 +115,38 @@ void main() {
     expect(rect.width, 500);
   });
 
+  testWidgets('short card AlertDialog: title at the start, actions at the end',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    late BuildContext pageContext;
+    late BuildContext dialogContext;
+    await tester.pumpWidget(_app(Builder(builder: (context) {
+      pageContext = context;
+      return const SizedBox();
+    })));
+    showDialog(
+      context: pageContext,
+      builder: (context) {
+        dialogContext = context;
+        return const AlertDialog(
+          title: SizedBox(key: Key('title'), width: 50, height: 20),
+          actions: [SizedBox(key: Key('action'), width: 60, height: 30)],
+        );
+      },
+    );
+    await tester.pumpAndSettle();
+    final scaling = Theme.of(dialogContext).scaling;
+    final card = tester.getRect(find.byType(ModalContainer));
+    final title = tester.getRect(find.byKey(const Key('title')));
+    final action = tester.getRect(find.byKey(const Key('action')));
+    expect(card.width, closeTo(512 * scaling, 0.01));
+    // 24px padding plus the 1px border on each side; 1px slack for pixel snap.
+    expect(title.left, closeTo(card.left + 25 * scaling, 1));
+    expect(action.right, closeTo(card.right - 25 * scaling, 1));
+  });
+
   testWidgets('card AlertDialog keeps equal side gaps on a phone',
       (tester) async {
     _phone(tester);

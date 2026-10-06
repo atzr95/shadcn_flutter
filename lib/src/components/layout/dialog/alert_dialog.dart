@@ -76,12 +76,15 @@ class _AlertDialogState extends State<AlertDialog> {
           ? EdgeInsets.zero
           : EdgeInsets.only(
               top: pad.top + 16 * scaling, bottom: pad.bottom + 16 * scaling),
-      // minWidth 280 is material's default, restated because passing
+      // A card fills the screen up to 512 like shadcn/ui's AlertDialog
+      // (w-full max-w-lg), so the title sits at the start and the buttons at
+      // the end. minWidth 280 is material's default, restated because passing
       // constraints replaces it.
       constraints: widget.isFullscreen
           ? null
           : BoxConstraints(
-              minWidth: math.min(280.0, maxWidth), maxWidth: maxWidth),
+              minWidth: math.min(280.0, maxWidth),
+              maxWidth: math.min(512 * scaling, maxWidth)),
       child: ModalContainer(
         borderRadius:
             widget.isFullscreen ? BorderRadius.zero : themeData.borderRadiusXxl,
@@ -107,7 +110,7 @@ class _AlertDialogState extends State<AlertDialog> {
             child: Column(
               mainAxisSize:
                   widget.isFullscreen ? MainAxisSize.max : MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Flexible(
                   child: Row(
@@ -148,9 +151,10 @@ class _AlertDialogState extends State<AlertDialog> {
                             left: 16 * scaling,
                           )
                         : EdgeInsets.zero,
-                    // Wraps the buttons into a right-aligned column when
-                    // they do not fit in one row (narrow phones).
+                    // Buttons sit at the end; they wrap into an end-aligned
+                    // column when they do not fit in one row (narrow phones).
                     child: OverflowBar(
+                      alignment: MainAxisAlignment.end,
                       spacing: 8 * scaling,
                       overflowSpacing: 8 * scaling,
                       overflowAlignment: OverflowBarAlignment.end,
