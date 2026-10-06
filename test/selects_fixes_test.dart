@@ -62,6 +62,23 @@ void main() {
 
     expect(changed, CalendarValue.single(date));
   });
+
+  testWidgets('MonthCalendar keeps a month with a mid-month minimum enabled',
+      (tester) async {
+    final min = DateTime(2024, 5, 15);
+    final tapped = <int>[];
+    await tester.pumpWidget(_app(MonthCalendar(
+      value: CalendarView(2024, 5),
+      onChanged: (view) => tapped.add(view.month),
+      stateBuilder: (date) =>
+          date.isBefore(min) ? DateState.disabled : DateState.enabled,
+    )));
+
+    await tester.tap(_text('Apr'), warnIfMissed: false);
+    await tester.tap(_text('May'));
+
+    expect(tapped, [5]);
+  });
 }
 
 Finder _text(String data) =>

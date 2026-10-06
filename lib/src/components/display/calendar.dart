@@ -14,6 +14,18 @@ enum DateState {
 
 typedef DateStateBuilder = DateState Function(DateTime date);
 
+// State of a month/year cell: enabled if the first or last day of the period
+// is, so a min/max date in the middle of it does not lock the whole period.
+DateState _periodState(
+    DateStateBuilder? stateBuilder, DateTime first, DateTime last) {
+  if (stateBuilder == null ||
+      stateBuilder(first) == DateState.enabled ||
+      stateBuilder(last) == DateState.enabled) {
+    return DateState.enabled;
+  }
+  return DateState.disabled;
+}
+
 class DatePickerDialog extends StatefulWidget {
   final CalendarViewType initialViewType;
   final CalendarView? initialView;
@@ -1092,7 +1104,8 @@ class MonthCalendar extends StatelessWidget {
             onChanged(value.copyWith(month: i));
           },
           width: theme.scaling * 56,
-          state: stateBuilder?.call(date) ?? DateState.enabled,
+          state:
+              _periodState(stateBuilder, date, DateTime(value.year, i + 1, 0)),
           child: Text(localizations.getAbbreviatedMonth(i)),
         ),
       );
@@ -1174,7 +1187,7 @@ class YearCalendar extends StatelessWidget {
             onChanged(i);
           },
           width: theme.scaling * 56,
-          state: stateBuilder?.call(date) ?? DateState.enabled,
+          state: _periodState(stateBuilder, date, DateTime(i, 12, 31)),
           child: Text('$i'),
         ),
       );
