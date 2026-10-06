@@ -302,7 +302,7 @@ class _ClickableState extends State<Clickable> {
     super.didUpdateWidget(oldWidget);
     _controller.update(WidgetState.disabled, !widget.enabled);
     if (!_canTap) {
-      // The tap recognizer is gone, so tap up/cancel will never clear it.
+      // The tap up/cancel handlers are gone, so they will never clear it.
       _controller.update(WidgetState.pressed, false);
     }
     if (!widget.enabled || widget.disableHoverEffect) {
@@ -407,7 +407,9 @@ class _ClickableState extends State<Clickable> {
       borderRadius = theme.borderRadiusMd;
     }
     var buttonContainer = _buildContainer(context, decoration);
-    // Disabled: no gestures, so no pressed/hover feedback and no callbacks.
+    // Disabled: no pressed/hover feedback and no callbacks. onTap stays wired
+    // so a disabled button still absorbs the tap (_onPressed returns early)
+    // and does not pass it to a tappable parent.
     final canTap = _canTap;
     return FocusOutline(
       focused: widget.focusOutline &&
@@ -416,7 +418,7 @@ class _ClickableState extends State<Clickable> {
       borderRadius: borderRadius,
       child: GestureDetector(
         behavior: widget.behavior,
-        onTap: canTap ? _onPressed : null,
+        onTap: widget.onPressed != null ? _onPressed : null,
         onLongPress: enabled ? widget.onLongPress : null,
         // onDoubleTap: widget.onDoubleTap, HANDLED CUSTOMLY
         onSecondaryTapDown: enabled ? widget.onSecondaryTapDown : null,

@@ -22,15 +22,19 @@ void main() {
     final enabled = ValueNotifier(true);
     addTearDown(enabled.dispose);
     var downs = 0;
+    var parentTaps = 0;
     await tester.pumpWidget(_app(
-      ValueListenableBuilder<bool>(
-        valueListenable: enabled,
-        builder: (context, value, _) => Clickable(
-          statesController: states,
-          enabled: value,
-          onPressed: () {},
-          onTapDown: (_) => downs++,
-          child: const SizedBox(width: 40, height: 40),
+      GestureDetector(
+        onTap: () => parentTaps++,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: enabled,
+          builder: (context, value, _) => Clickable(
+            statesController: states,
+            enabled: value,
+            onPressed: () {},
+            onTapDown: (_) => downs++,
+            child: const SizedBox(width: 40, height: 40),
+          ),
         ),
       ),
     ));
@@ -54,6 +58,8 @@ void main() {
     expect(downs, 1);
     await gesture.up();
     await tester.pump();
+    // A disabled button still absorbs the tap.
+    expect(parentTaps, 0);
   });
 
   testWidgets(
