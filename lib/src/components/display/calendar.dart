@@ -399,11 +399,13 @@ class _DatePickerDialogState extends State<DatePickerDialog> {
       CalendarViewType viewType,
       CalendarSelectionMode selectionMode,
       ValueChanged<CalendarView> onViewChanged) {
+    final now = DateTime.now();
     if (viewType == CalendarViewType.year) {
       return YearCalendar(
         value: view.year,
         yearSelectStart: yearSelectStart,
         calendarValue: _value,
+        now: now,
         stateBuilder: widget.stateBuilder,
         onChanged: (value) {
           setState(() {
@@ -418,11 +420,13 @@ class _DatePickerDialogState extends State<DatePickerDialog> {
         onChanged: onViewChanged,
         stateBuilder: widget.stateBuilder,
         calendarValue: _value,
+        now: now,
       );
     }
     return Calendar(
       value: _value,
       view: view,
+      now: now,
       stateBuilder: widget.stateBuilder,
       onChanged: (value) {
         setState(() {
@@ -830,6 +834,9 @@ class Calendar extends StatelessWidget {
     // — using daysInMonth here is only correct when the two months happen to
     // differ by exactly one day.
     int daysInPreviousMonth = DateTime(view.year, view.month, 0).day;
+    // Cells are midnight dates, so compare against today without the time.
+    final today =
+        now == null ? null : DateTime(now!.year, now!.month, now!.day);
     ShadcnLocalizations localizations =
         Localizations.of(context, ShadcnLocalizations);
     List<Widget> rows = [];
@@ -871,7 +878,7 @@ class Calendar extends StatelessWidget {
             calendarValue.lookup(dateTime.year, dateTime.month, dateTime.day);
         switch (lookup) {
           case CalendarValueLookup.none:
-            if (now != null && now!.isAtSameMomentAs(dateTime)) {
+            if (dateTime == today) {
               type = CalendarItemType.today;
             }
             break;
@@ -889,7 +896,7 @@ class Calendar extends StatelessWidget {
             break;
         }
       } else {
-        if (now != null && now!.isAtSameMomentAs(dateTime)) {
+        if (dateTime == today) {
           type = CalendarItemType.today;
         }
       }
@@ -917,7 +924,7 @@ class Calendar extends StatelessWidget {
         final lookup = calendarValue.lookup(date.year, date.month, date.day);
         switch (lookup) {
           case CalendarValueLookup.none:
-            if (now != null && now!.isAtSameMomentAs(date)) {
+            if (date == today) {
               type = CalendarItemType.today;
             }
             break;
@@ -935,7 +942,7 @@ class Calendar extends StatelessWidget {
             break;
         }
       } else {
-        if (now != null && now!.isAtSameMomentAs(date)) {
+        if (date == today) {
           type = CalendarItemType.today;
         }
       }
@@ -967,7 +974,7 @@ class Calendar extends StatelessWidget {
             calendarValue.lookup(dateTime.year, dateTime.month, dateTime.day);
         switch (lookup) {
           case CalendarValueLookup.none:
-            if (now != null && now!.isAtSameMomentAs(dateTime)) {
+            if (dateTime == today) {
               type = CalendarItemType.today;
             }
             break;
@@ -985,7 +992,7 @@ class Calendar extends StatelessWidget {
             break;
         }
       } else {
-        if (now != null && now!.isAtSameMomentAs(dateTime)) {
+        if (dateTime == today) {
           type = CalendarItemType.today;
         }
       }
