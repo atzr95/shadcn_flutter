@@ -147,6 +147,28 @@ void main() {
     expect(action.right, closeTo(card.right - 25 * scaling, 1));
   });
 
+  testWidgets('date picker dialog centers its calendar in a wide card',
+      (tester) async {
+    // Wide enough that the card (512 * scaling) is much wider than the
+    // fixed-size calendar.
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(DatePicker(
+      value: DateTime(2026, 10, 6),
+      mode: PromptMode.dialog,
+      onChanged: (_) {},
+    )));
+    await tester.tap(find.byType(DatePicker));
+    await tester.pumpAndSettle();
+    final card = tester.getRect(find.byType(ModalContainer).last);
+    final calendar = tester.getRect(find.byType(Calendar));
+    // Equal space on both sides (1px slack for pixel snap).
+    expect(calendar.left - card.left, closeTo(card.right - calendar.right, 1));
+    // The card stays as tall as its content, not the screen.
+    expect(card.height, lessThan(600));
+  });
+
   testWidgets('card AlertDialog keeps equal side gaps on a phone',
       (tester) async {
     _phone(tester);

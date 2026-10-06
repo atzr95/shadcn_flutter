@@ -271,11 +271,16 @@ class _ObjectFormFieldDialogState<T> extends State<_ObjectFormFieldDialog<T>>
       data: this,
       child: AlertDialog(
         title: widget.dialogTitle,
+        // Pickers (calendar, time) have a fixed width; center them in the
+        // full-width card. heightFactor 1 keeps the card's height to content.
         content: Padding(
           padding: EdgeInsets.only(top: 8 * theme.scaling),
-          child: widget.editorBuilder(
-            context,
-            this,
+          child: Center(
+            heightFactor: 1,
+            child: widget.editorBuilder(
+              context,
+              this,
+            ),
           ),
         ),
         actions: [
