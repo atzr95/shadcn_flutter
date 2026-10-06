@@ -80,6 +80,13 @@ class Tooltip extends StatefulWidget {
 
 class _TooltipState extends State<Tooltip> {
   final PopoverController _controller = PopoverController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Hover(

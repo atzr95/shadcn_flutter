@@ -495,7 +495,13 @@ class PopoverAnchorState extends State<PopoverAnchor>
   }
 
   void _tick(Duration elapsed) {
-    if (!mounted || !anchorContext.mounted) return;
+    if (!mounted) return;
+    if (!anchorContext.mounted) {
+      // The anchor is gone: stop ticking every frame and close the popover.
+      _ticker.stop();
+      widget.onClose?.call();
+      return;
+    }
     // update position based on anchorContext
     RenderBox? renderBox = anchorContext.findRenderObject() as RenderBox?;
     if (renderBox != null) {
