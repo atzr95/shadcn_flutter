@@ -280,6 +280,29 @@ class RadioGroupData<T> {
 }
 
 class _RadioGroupState<T> extends State<RadioGroup<T>> with FormValueSupplier {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reportValue();
+  }
+
+  @override
+  void didUpdateWidget(covariant RadioGroup<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value) {
+      _reportValue();
+    }
+  }
+
+  // Reports the current (maybe unselected) value to an enclosing form entry.
+  void _reportValue() {
+    reportNewFormValue<T?>(widget.value, (value) {
+      if (value != null) {
+        widget.onChanged?.call(value);
+      }
+    });
+  }
+
   void _setSelected(T value) {
     if (widget.value != value) {
       widget.onChanged?.call(value);
