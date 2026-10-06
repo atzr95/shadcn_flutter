@@ -592,7 +592,9 @@ class _CarouselState extends State<Carousel>
   void didUpdateWidget(covariant Carousel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
-      oldWidget.controller?.removeListener(_onControllerChange);
+      _controller.removeListener(_onControllerChange);
+      // Only the controller this state created is ours to dispose.
+      if (oldWidget.controller == null) _controller.dispose();
       _controller = widget.controller ?? CarouselController();
       _controller.addListener(_onControllerChange);
       _dispatchControllerChange();
@@ -623,7 +625,8 @@ class _CarouselState extends State<Carousel>
   @override
   void dispose() {
     _controller.removeListener(_onControllerChange);
-    _controller.dispose();
+    // A controller passed in by the caller is theirs to dispose.
+    if (widget.controller == null) _controller.dispose();
     _ticker.dispose();
     super.dispose();
   }
