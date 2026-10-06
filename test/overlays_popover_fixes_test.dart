@@ -115,8 +115,10 @@ void main() {
     expect(rect.width, 500);
   });
 
-  testWidgets('short card AlertDialog: title at the start, actions at the end',
-      (tester) async {
+  // Opens a card AlertDialog with a [titleWidth] title and one 60px action on
+  // a wide screen; returns the card, title and action rects and scaling.
+  Future<(Rect, Rect, Rect, double)> showSized(
+      WidgetTester tester, double titleWidth) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -130,27 +132,59 @@ void main() {
       context: pageContext,
       builder: (context) {
         dialogContext = context;
-        return const AlertDialog(
-          title: SizedBox(key: Key('title'), width: 50, height: 20),
-          actions: [SizedBox(key: Key('action'), width: 60, height: 30)],
+        return AlertDialog(
+          title: SizedBox(key: const Key('title'), width: titleWidth, height: 20),
+          actions: const [SizedBox(key: Key('action'), width: 60, height: 30)],
         );
       },
     );
     await tester.pumpAndSettle();
-    final scaling = Theme.of(dialogContext).scaling;
-    final card = tester.getRect(find.byType(ModalContainer));
-    final title = tester.getRect(find.byKey(const Key('title')));
-    final action = tester.getRect(find.byKey(const Key('action')));
-    expect(card.width, closeTo(512 * scaling, 0.01));
-    // 24px padding plus the 1px border on each side; 1px slack for pixel snap.
+    return (
+      tester.getRect(find.byType(ModalContainer)),
+      tester.getRect(find.byKey(const Key('title'))),
+      tester.getRect(find.byKey(const Key('action'))),
+      Theme.of(dialogContext).scaling,
+    );
+  }
+
+  // 24px padding plus the 1px border on each side; 1px slack for pixel snap.
+  testWidgets('short card AlertDialog: min width, title start, actions end',
+      (tester) async {
+    final (card, title, action, scaling) = await showSized(tester, 50);
+    expect(card.width, closeTo(280, 1));
     expect(title.left, closeTo(card.left + 25 * scaling, 1));
     expect(action.right, closeTo(card.right - 25 * scaling, 1));
   });
 
-  testWidgets('date picker dialog centers its calendar in a wide card',
+  testWidgets('wide content card AlertDialog fits it, actions at the end',
       (tester) async {
-    // Wide enough that the card (512 * scaling) is much wider than the
-    // fixed-size calendar.
+    final (card, title, action, scaling) = await showSized(tester, 400);
+    expect(card.width, closeTo(400 + 50 * scaling, 1));
+    expect(title.left, closeTo(card.left + 25 * scaling, 1));
+    expect(action.right, closeTo(card.right - 25 * scaling, 1));
+  });
+
+  testWidgets('card AlertDialog keeps a caller width above 512',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    late BuildContext pageContext;
+    await tester.pumpWidget(_app(Builder(builder: (context) {
+      pageContext = context;
+      return const SizedBox();
+    })));
+    showDialog(
+      context: pageContext,
+      builder: (context) => const AlertDialog(
+        content: SizedBox(width: 2000, height: 40),
+      ).constrained(maxWidth: 900),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(ModalContainer)).width, 900);
+  });
+
+  testWidgets('date picker dialog fits its calendar', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -163,10 +197,10 @@ void main() {
     await tester.pumpAndSettle();
     final card = tester.getRect(find.byType(ModalContainer).last);
     final calendar = tester.getRect(find.byType(Calendar));
-    // Equal space on both sides (1px slack for pixel snap).
-    expect(calendar.left - card.left, closeTo(card.right - calendar.right, 1));
-    // The card stays as tall as its content, not the screen.
-    expect(card.height, lessThan(600));
+    final scaling = Theme.of(tester.element(find.byType(Calendar))).scaling;
+    // Only the card padding on each side, no empty space.
+    expect(calendar.left - card.left, closeTo(25 * scaling, 1));
+    expect(card.right - calendar.right, closeTo(25 * scaling, 1));
   });
 
   testWidgets('card AlertDialog keeps equal side gaps on a phone',
