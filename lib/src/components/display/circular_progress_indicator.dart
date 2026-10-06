@@ -10,6 +10,9 @@ class CircularProgressIndicator extends StatelessWidget {
   final bool onSurface;
   final double? strokeWidth;
 
+  /// The indicator color. Defaults to primary (background when [onSurface]).
+  final Color? color;
+
   const CircularProgressIndicator({
     super.key,
     this.value,
@@ -18,14 +21,15 @@ class CircularProgressIndicator extends StatelessWidget {
     this.animated = true,
     this.onSurface = false,
     this.strokeWidth,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final iconThemeData = IconTheme.of(context);
     final theme = Theme.of(context);
-    var color =
-        onSurface ? theme.colorScheme.background : theme.colorScheme.primary;
+    var color = this.color ??
+        (onSurface ? theme.colorScheme.background : theme.colorScheme.primary);
     if (value == null || !animated) {
       return RepaintBoundary(
         child: SizedBox(
