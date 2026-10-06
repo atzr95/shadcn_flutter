@@ -187,6 +187,7 @@ class ThemeData {
         other.radius == radius &&
         other.scaling == scaling &&
         other.iconTheme == iconTheme &&
+        other.platform == platform &&
         other.surfaceOpacity == surfaceOpacity &&
         other.surfaceBlur == surfaceBlur;
   }
@@ -199,6 +200,7 @@ class ThemeData {
       radius,
       scaling,
       iconTheme,
+      platform,
       surfaceOpacity,
       surfaceBlur,
     );
