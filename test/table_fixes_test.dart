@@ -70,4 +70,51 @@ void main() {
     // intrinsic height uses the same column widths as layout
     expect(table.getMaxIntrinsicHeight(200), table.size.height);
   });
+
+  test('getOffset and size are running sums of the tracks', () {
+    final result = TableLayoutResult(
+      columnWidths: [10, 20, 30],
+      rowHeights: [5, 7],
+      remainingWidth: 0,
+      remainingHeight: 0,
+      remainingLooseWidth: 0,
+      remainingLooseHeight: 0,
+      hasTightFlexWidth: false,
+      hasTightFlexHeight: false,
+    );
+    expect(result.getOffset(0, 0), Offset.zero);
+    expect(result.getOffset(2, 1), const Offset(30, 5));
+    expect(result.getOffset(3, 2), const Offset(60, 12));
+    expect(result.size, const Size(60, 12));
+  });
+
+  group('scroll offset change', () {
+    Widget table(double offset, {FrozenTableData? frozen}) => _app(Table(
+          horizontalOffset: offset,
+          frozenCells: frozen,
+          rows: const [
+            TableRow(cells: [
+              TableCell(child: Text('a')),
+              TableCell(child: Text('b')),
+            ]),
+          ],
+        ));
+
+    Future<bool> needsLayoutAfterScroll(WidgetTester tester,
+        {FrozenTableData? frozen}) async {
+      await tester.pumpWidget(table(0, frozen: frozen));
+      await tester.pumpWidget(table(10, frozen: frozen),
+          phase: EnginePhase.build);
+      return _table(tester).debugNeedsLayout;
+    }
+
+    testWidgets('skips relayout without frozen cells', (tester) async {
+      expect(await needsLayoutAfterScroll(tester), isFalse);
+    });
+
+    testWidgets('relayouts with frozen cells', (tester) async {
+      const frozen = FrozenTableData(frozenColumns: [TableRef(0)]);
+      expect(await needsLayoutAfterScroll(tester, frozen: frozen), isTrue);
+    });
+  });
 }

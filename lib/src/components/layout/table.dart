@@ -1367,11 +1367,16 @@ class Table extends StatefulWidget {
 class _TableState extends State<Table> {
   late List<_FlattenedTableCell> _cells;
   final ValueNotifier<_HoveredCell?> _hoveredCellNotifier = ValueNotifier(null);
+  // Kept across builds, so a rebuild with the same sizes (e.g. a scroll
+  // offset change) does not force RawTableLayout to relayout.
+  late TableSizeSupplier _width;
+  late TableSizeSupplier _height;
 
   @override
   void initState() {
     super.initState();
     _initCells();
+    _initSizes();
   }
 
   @override
@@ -1380,6 +1385,23 @@ class _TableState extends State<Table> {
     if (!listEquals(widget.rows, oldWidget.rows)) {
       _initCells();
     }
+    if (!mapEquals(widget.columnWidths, oldWidget.columnWidths) ||
+        !mapEquals(widget.rowHeights, oldWidget.rowHeights) ||
+        widget.defaultColumnWidth != oldWidget.defaultColumnWidth ||
+        widget.defaultRowHeight != oldWidget.defaultRowHeight) {
+      _initSizes();
+    }
+  }
+
+  // ponytail: like Flutter's Table, a size map edited in place is not
+  // noticed; pass a new map. TableSize has no ==, so only const sizes match.
+  void _initSizes() {
+    final columnWidths = widget.columnWidths;
+    final rowHeights = widget.rowHeights;
+    final defaultColumnWidth = widget.defaultColumnWidth;
+    final defaultRowHeight = widget.defaultRowHeight;
+    _width = (index) => columnWidths?[index] ?? defaultColumnWidth;
+    _height = (index) => rowHeights?[index] ?? defaultRowHeight;
   }
 
   void _initCells() {
@@ -1423,18 +1445,8 @@ class _TableState extends State<Table> {
         horizontalOffset: widget.horizontalOffset,
         verticalOffset: widget.verticalOffset,
         viewportSize: widget.viewportSize,
-        width: (index) {
-          if (widget.columnWidths != null) {
-            return widget.columnWidths![index] ?? widget.defaultColumnWidth;
-          }
-          return widget.defaultColumnWidth;
-        },
-        height: (index) {
-          if (widget.rowHeights != null) {
-            return widget.rowHeights![index] ?? widget.defaultRowHeight;
-          }
-          return widget.defaultRowHeight;
-        },
+        width: _width,
+        height: _height,
         children: _cells.map((cell) {
           return Data.inherit(
             data: cell,
@@ -1633,17 +1645,20 @@ class RawTableLayout extends MultiChildRenderObjectWidget {
       renderObject._frozenRow = frozenRow;
       needsRelayout = true;
     }
+    // offsets and viewport size only move frozen cells,
+    // so scrolling a table without frozen cells skips relayout
+    final hasFrozenCells = frozenColumn != null || frozenRow != null;
     if (renderObject._verticalOffset != verticalOffset) {
       renderObject._verticalOffset = verticalOffset;
-      needsRelayout = true;
+      needsRelayout |= hasFrozenCells;
     }
     if (renderObject._horizontalOffset != horizontalOffset) {
       renderObject._horizontalOffset = horizontalOffset;
-      needsRelayout = true;
+      needsRelayout |= hasFrozenCells;
     }
     if (renderObject._viewportSize != viewportSize) {
       renderObject._viewportSize = viewportSize;
-      needsRelayout = true;
+      needsRelayout |= hasFrozenCells;
     }
     if (needsRelayout) {
       renderObject.markNeedsLayout();
@@ -2279,16 +2294,20 @@ class TableLayoutResult {
     required this.hasTightFlexHeight,
   });
 
+  // prefix sums, so getOffset is O(1) per cell
+  late final List<double> _columnOffsets = _prefixSums(columnWidths);
+  late final List<double> _rowOffsets = _prefixSums(rowHeights);
+
+  static List<double> _prefixSums(List<double> sizes) {
+    final sums = List<double>.filled(sizes.length + 1, 0);
+    for (int i = 0; i < sizes.length; i++) {
+      sums[i + 1] = sums[i] + sizes[i];
+    }
+    return sums;
+  }
+
   Offset getOffset(int column, int row) {
-    double x = 0;
-    for (int i = 0; i < column; i++) {
-      x += columnWidths[i];
-    }
-    double y = 0;
-    for (int i = 0; i < row; i++) {
-      y += rowHeights[i];
-    }
-    return Offset(x, y);
+    return Offset(_columnOffsets[column], _rowOffsets[row]);
   }
 
   /// Returns the sum of all column widths and row heights.
@@ -2297,10 +2316,10 @@ class TableLayoutResult {
   }
 
   double get width {
-    return columnWidths.fold(0, (a, b) => a + b);
+    return _columnOffsets.last;
   }
 
   double get height {
-    return rowHeights.fold(0, (a, b) => a + b);
+    return _rowOffsets.last;
   }
 }
