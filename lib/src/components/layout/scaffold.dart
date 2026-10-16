@@ -63,13 +63,25 @@ class ScaffoldBarData {
 
 // Passed to a Scaffold's content, which sees no view insets (the outer
 // Scaffold pads them away), so a nested Scaffold still hides its footers
-// while the keyboard is open.
-enum _ScaffoldKeyboard { open, closed }
+// while the keyboard is open. Not a Data: showDialog's Data.capture would
+// freeze it into the dialog route and hide the dialog's footers for good.
+class _ScaffoldKeyboardScope extends InheritedWidget {
+  final bool open;
+
+  const _ScaffoldKeyboardScope({required this.open, required super.child});
+
+  @override
+  bool updateShouldNotify(_ScaffoldKeyboardScope oldWidget) =>
+      open != oldWidget.open;
+}
 
 class ScaffoldState extends State<Scaffold> {
   bool _isKeyboardOpen(EdgeInsets viewInsets) =>
       viewInsets.bottom > 0 ||
-      Data.maybeOf<_ScaffoldKeyboard>(context) == _ScaffoldKeyboard.open;
+      (context
+              .dependOnInheritedWidgetOfExactType<_ScaffoldKeyboardScope>()
+              ?.open ??
+          false);
 
   Widget buildHeader(BuildContext context) {
     return Container(
@@ -194,10 +206,8 @@ class ScaffoldState extends State<Scaffold> {
                 removeTop: true,
                 removeRight: true,
                 removeBottom: true,
-                child: Data<_ScaffoldKeyboard>.inherit(
-                  data: _isKeyboardOpen(viewInsets)
-                      ? _ScaffoldKeyboard.open
-                      : _ScaffoldKeyboard.closed,
+                child: _ScaffoldKeyboardScope(
+                  open: _isKeyboardOpen(viewInsets),
                   child: ToastLayer(child: widget.child),
                 ),
               ),

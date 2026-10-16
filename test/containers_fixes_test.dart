@@ -153,6 +153,39 @@ void main() {
       expect(find.byKey(const ValueKey('footer')), findsNothing);
     });
 
+    testWidgets('dialog Scaffold footers show once the keyboard closes',
+        (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.reset);
+      late BuildContext pageContext;
+      await tester.pumpWidget(_app(Scaffold(
+        child: Builder(builder: (context) {
+          pageContext = context;
+          return const SizedBox.expand();
+        }),
+      )));
+      // Opened while the page keyboard is up (e.g. from a search field).
+      showDialog(
+        context: pageContext,
+        builder: (_) => const AlertDialog.fullscreen(
+          content: Scaffold(
+            footers: [SizedBox(key: ValueKey('footer'), height: 50)],
+            child: SizedBox.expand(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      tester.view.resetViewInsets();
+      await tester.pumpAndSettle();
+      final offstage = tester.widgetList<Offstage>(find.ancestor(
+        of: find.byKey(const ValueKey('footer'), skipOffstage: false),
+        matching: find.byType(Offstage, skipOffstage: false),
+      ));
+      expect(offstage.first.offstage, isFalse);
+    });
+
     testWidgets('ScaffoldHeaderPadding takes a child and hit-tests it',
         (tester) async {
       var taps = 0;
