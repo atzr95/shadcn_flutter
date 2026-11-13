@@ -120,4 +120,26 @@ void main() {
       }
     });
   });
+
+  testWidgets('ScrollableClient rebuilds its content when the parent does',
+      (tester) async {
+    var label = 'old';
+    late StateSetter setLabel;
+    await tester.pumpWidget(_app(StatefulBuilder(builder: (context, setState) {
+      setLabel = setState;
+      return SizedBox(
+        height: 100,
+        child: ScrollableClient(
+          builder: (context, offset, viewportSize, child) =>
+              SizedBox(width: 800, child: Text(label)),
+        ),
+      );
+    })));
+    setLabel(() => label = 'new');
+    await tester.pump();
+
+    // The viewport kept the first builder, so the text changed only on scroll.
+    expect(find.byWidgetPredicate((w) => w is Text && w.data == 'new'),
+        findsOneWidget);
+  });
 }

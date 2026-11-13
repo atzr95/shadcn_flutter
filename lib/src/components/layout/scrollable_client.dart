@@ -171,10 +171,33 @@ class ScrollableClientViewport extends TwoDimensionalViewport {
       overscroll: overscroll,
     );
   }
+
+  // Without this the render object keeps the first delegate, so a parent
+  // rebuild never reaches the content until the scroll offset changes.
+  @override
+  void updateRenderObject(
+      BuildContext context, RenderScrollableClientViewport renderObject) {
+    renderObject
+      ..horizontalOffset = horizontalOffset
+      ..horizontalAxisDirection = horizontalAxisDirection
+      ..verticalOffset = verticalOffset
+      ..verticalAxisDirection = verticalAxisDirection
+      ..mainAxis = mainAxis
+      ..delegate = delegate
+      ..clipBehavior = clipBehavior
+      ..overscroll = overscroll;
+  }
 }
 
 class RenderScrollableClientViewport extends RenderTwoDimensionalViewport {
-  final bool overscroll;
+  bool _overscroll;
+  bool get overscroll => _overscroll;
+  set overscroll(bool value) {
+    if (_overscroll == value) return;
+    _overscroll = value;
+    markNeedsLayout();
+  }
+
   RenderScrollableClientViewport({
     required super.horizontalOffset,
     required super.horizontalAxisDirection,
@@ -185,8 +208,8 @@ class RenderScrollableClientViewport extends RenderTwoDimensionalViewport {
     required super.childManager,
     super.cacheExtent,
     super.clipBehavior = Clip.hardEdge,
-    required this.overscroll,
-  });
+    required bool overscroll,
+  }) : _overscroll = overscroll;
 
   @override
   void layoutChildSequence() {
